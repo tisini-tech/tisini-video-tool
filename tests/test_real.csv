@@ -1,0 +1,8 @@
+//mock data replace youtube url or local path with direct url to test direct url access and probe
+
+player,match_id,action,start_time,end_time
+Ligi vs Diaspora goals,https://youtu.be/AU_D0spMoE8?si=bET122YQ2VphtQ8Y,goal,10:00,10:08
+Ligi vs Diaspora goals,https://youtu.be/AU_D0spMoE8?si=bET122YQ2VphtQ8Y,goal,13:15,13:27
+Ligi vs Diaspora goals,https://youtu.be/AU_D0spMoE8?si=bET122YQ2VphtQ8Y,goal,14:37,14:50
+Ligi vs Diaspora goals,https://youtu.be/AU_D0spMoE8?si=bET122YQ2VphtQ8Y,goal,40:05,40:14
+

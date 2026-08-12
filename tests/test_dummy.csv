@@ -1,0 +1,15 @@
+// YFetch Unified CSV Format v3.0
+// The match_id column accepts ANY source type:
+//   - YouTube URL: https://www.youtube.com/watch?v=ABC123
+//   - Local path:  /home/lab/videos/match1.mp4  (or just match1.mp4)
+//   - Cache key:   ABC123  (previously downloaded video ID)
+//
+// All sources work in the SAME CSV. Auto-detected.
+
+player,match_id,action,start_time,end_time
+Ronaldo,https://www.youtube.com/watch?v=dQw4w9WgXcQ,Goal,00:01:30,00:01:45
+Ronaldo,https://www.youtube.com/watch?v=dQw4w9WgXcQ,Assist,00:02:15,00:02:30
+Messi,/home/lab/videos/barcelona_vs_real.mp4,Free Kick,00:05:20,00:05:35
+Messi,/home/lab/videos/barcelona_vs_real.mp4,Dribble,00:08:10,00:08:25
+Mbappe,ABC123_xyz,Sprint,00:03:00,00:03:15
+Mbappe,ABC123_xyz,Shot,00:04:45,00:05:00

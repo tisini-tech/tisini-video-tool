@@ -1,0 +1,7 @@
+# YFetch YouTube authentication cookie file
+#
+# Export cookies in Netscape cookies.txt format and save the real file as:
+#   <project-root>/youtube_cookies.txt
+#
+# Do not commit or share the real file. It is ignored by .gitignore.
+# This example is intentionally not a valid cookie file.

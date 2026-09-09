@@ -1,14 +1,14 @@
 """
-YFetch Unified Downloader
+Video Tool Unified Downloader
 Supports both YouTube and Google Drive sources with quality-preserving trim
 """
 import re
 from dataclasses import dataclass
-from typing import Optional, Literal
 from pathlib import Path
+from typing import Literal
 
 # Import our modules
-from ..gdrive.parser import is_drive_url, parse_drive_url, GDriveError
+from ..gdrive.parser import is_drive_url, parse_drive_url
 from ..gdrive.trimmer import GDriveTrimmer, TrimResult
 
 
@@ -16,9 +16,9 @@ from ..gdrive.trimmer import GDriveTrimmer, TrimResult
 class DownloadRequest:
     """User download request"""
     url: str
-    start_time: Optional[float] = None  # None = download full
-    end_time: Optional[float] = None
-    output_name: Optional[str] = None
+    start_time: float | None = None  # None = download full
+    end_time: float | None = None
+    output_name: str | None = None
     quality: str = "best"  # best, 1080p, 720p, etc.
     mode: Literal['accurate', 'fast', 'auto'] = 'auto'
 
@@ -28,17 +28,17 @@ class SourceInfo:
     """Detected source information"""
     source_type: Literal['youtube', 'gdrive', 'unknown']
     is_valid: bool
-    file_id: Optional[str] = None
-    video_id: Optional[str] = None
-    title_hint: Optional[str] = None
+    file_id: str | None = None
+    video_id: str | None = None
+    title_hint: str | None = None
 
 
-class YFetchUnified:
+class VideoToolUnified:
     """
     Unified downloader for YouTube and Google Drive.
 
     Usage:
-        fetch = YFetchUnified()
+        fetch = VideoToolUnified()
 
         # Download from Google Drive
         result = fetch.download("https://drive.google.com/file/d/ABC123/view", 
@@ -85,9 +85,9 @@ class YFetchUnified:
 
     def download(self, 
                  url: str,
-                 start_time: Optional[float] = None,
-                 end_time: Optional[float] = None,
-                 output_name: Optional[str] = None,
+                 start_time: float | None = None,
+                 end_time: float | None = None,
+                 output_name: str | None = None,
                  quality: str = "best",
                  mode: Literal['accurate', 'fast', 'auto'] = 'auto',
                  crf: int = 18) -> TrimResult:
@@ -111,7 +111,7 @@ class YFetchUnified:
         if not source.is_valid:
             return TrimResult(
                 success=False,
-                error_message=f"Unsupported URL format. Supported: YouTube, Google Drive"
+                error_message="Unsupported URL format. Supported: YouTube, Google Drive"
             )
 
         # Handle Google Drive
@@ -148,17 +148,17 @@ class YFetchUnified:
 
     def _download_youtube(self, **kwargs) -> TrimResult:
         """Placeholder for YouTube download - integrate with your existing code"""
-        # This should call your existing YFetch Basic or YFetch Pro download logic
+        # This should call your existing Video Tool Basic or Video Tool Pro download logic
         return TrimResult(
             success=False,
-            error_message="YouTube download not implemented in unified module. Use your existing YFetch app."
+            error_message="YouTube download not implemented in unified module. Use your existing Video Tool app."
         )
 
 
 # Quick test function
 def test_url(url: str) -> dict:
     """Test a URL and return what we detected"""
-    fetch = YFetchUnified()
+    fetch = VideoToolUnified()
     source = fetch.detect_source(url)
     return {
         'type': source.source_type,

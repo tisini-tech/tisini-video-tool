@@ -1,6 +1,6 @@
 """
-🛠 YFetch Core Utilities — HIGH QUALITY VERSION
-Shared utilities for YFetch apps.
+🛠 Video Tool Core Utilities — HIGH QUALITY VERSION
+Shared utilities for Video Tool apps.
 
 Quality improvements:
 • trim_clip: tries lossless copy first, falls back to high-quality re-encode
@@ -8,35 +8,35 @@ Quality improvements:
 • Proper CRF/preset settings when re-encode is unavoidable
 """
 
+import csv
+import json
 import os
 import re
-import json
-import csv
-import subprocess
 import shutil
+import subprocess
 from pathlib import Path
 
 # === RUNTIME PATHS ===
 # Keep generated state outside the source tree. This avoids polluting the
-# project with cache/config files while giving every YFetch version one
+# project with cache/config files while giving every Video Tool version one
 # consistent location for shared state.
-YFETCH_CONFIG_DIR = Path.home() / ".config" / "yfetch"
-YFETCH_CACHE_DIR = Path.home() / ".cache" / "yfetch"
-CACHE_FILE = str(YFETCH_CACHE_DIR / "cache.json")
-CONFIG_FILE = str(YFETCH_CONFIG_DIR / "config.json")
-DOWNLOAD_COUNT_FILE = str(YFETCH_CACHE_DIR / "download_count.json")
+VIDEO_TOOL_CONFIG_DIR = Path.home() / ".config" / "video-tool"
+VIDEO_TOOL_CACHE_DIR = Path.home() / ".cache" / "video-tool"
+CACHE_FILE = str(VIDEO_TOOL_CACHE_DIR / "cache.json")
+CONFIG_FILE = str(VIDEO_TOOL_CONFIG_DIR / "config.json")
+DOWNLOAD_COUNT_FILE = str(VIDEO_TOOL_CACHE_DIR / "download_count.json")
 
 
 def _ensure_runtime_dirs() -> None:
-    """Create YFetch runtime directories when state needs to be written."""
-    YFETCH_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    YFETCH_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    """Create Video Tool runtime directories when state needs to be written."""
+    VIDEO_TOOL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    VIDEO_TOOL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # === PATH UTILS ===
 def project_path(*parts):
     """Return an absolute path relative to the repository root."""
-    # core.py lives at: <project>/src/yfetch/core.py
+    # core.py lives at: <project>/src/video_tool/core.py
     project_root = Path(__file__).resolve().parents[2]
     return str(project_root.joinpath(*parts))
 
@@ -170,7 +170,7 @@ def load_cache():
     """Load video cache."""
     if os.path.exists(CACHE_FILE):
         try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+            with open(CACHE_FILE, encoding='utf-8') as f:
                 return json.load(f)
         except Exception:
             pass
@@ -203,7 +203,7 @@ def add_to_cache(cache, video_id, format_type, path):
 
 
 def default_download_directories() -> list[str]:
-    """Return the conventional YFetch download locations.
+    """Return the conventional Video Tool download locations.
 
     Linux filesystems are case-sensitive, so both historical spellings are
     checked. The user's explicit output directory is added separately by
@@ -211,8 +211,8 @@ def default_download_directories() -> list[str]:
     """
     downloads = Path.home() / "Downloads"
     candidates = [
-        downloads / "yfetch",
-        downloads / "YFetch",
+        downloads / "video-tool",
+        downloads / "Video-Tool",
     ]
 
     existing: list[str] = []
@@ -295,7 +295,7 @@ def load_config():
     """Load app config."""
     if os.path.exists(CONFIG_FILE):
         try:
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            with open(CONFIG_FILE, encoding='utf-8') as f:
                 return json.load(f)
         except Exception:
             pass
@@ -316,7 +316,7 @@ def load_download_count():
     """Load download counter."""
     if os.path.exists(DOWNLOAD_COUNT_FILE):
         try:
-            with open(DOWNLOAD_COUNT_FILE, 'r', encoding='utf-8') as f:
+            with open(DOWNLOAD_COUNT_FILE, encoding='utf-8') as f:
                 data = json.load(f)
                 return data.get('count', 0)
         except Exception:
@@ -661,16 +661,16 @@ def merge_clips(ffmpeg_path, clip_paths, output_path, re_encode=False,
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
         if result.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            print(f"  ✅ Lossless merge complete")
+            print("  ✅ Lossless merge complete")
             return output_path
 
         # Log why it failed
         if result.returncode != 0:
             err = result.stderr
             if "Codec stream differs" in err or "does not match" in err:
-                print(f"  ⚠️  Clips have incompatible codecs, falling back to re-encode")
+                print("  ⚠️  Clips have incompatible codecs, falling back to re-encode")
             else:
-                print(f"  ⚠️  Concat copy failed, falling back to re-encode")
+                print("  ⚠️  Concat copy failed, falling back to re-encode")
 
         if os.path.exists(output_path):
             os.remove(output_path)
@@ -738,7 +738,7 @@ def read_csv_entries(csv_path):
 
     # Read raw lines, skip comments and blank lines
     raw_lines = []
-    with open(csv_path, 'r', encoding='utf-8') as f:
+    with open(csv_path, encoding='utf-8') as f:
         for line in f:
             stripped = line.strip()
             # Skip blank lines and comment lines

@@ -1,28 +1,27 @@
 """
-GDrive Video Trimmer for YFetch
+GDrive Video Trimmer for Video Tool
 Downloads and trims Google Drive videos with quality preservation
 """
-import subprocess
-import os
-import tempfile
 import json
-from pathlib import Path
-from typing import Optional, Tuple, Literal
+import subprocess
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
 
-from .parser import GDriveURLParser, GDriveError, get_drive_stream_url
+from .parser import GDriveError, get_drive_stream_url
 
 
 @dataclass
 class TrimResult:
     """Result of a trim operation"""
     success: bool
-    output_path: Optional[str] = None
-    error_message: Optional[str] = None
-    original_duration: Optional[float] = None
-    trimmed_duration: Optional[float] = None
-    original_resolution: Optional[str] = None
-    output_size_mb: Optional[float] = None
+    output_path: str | None = None
+    error_message: str | None = None
+    original_duration: float | None = None
+    trimmed_duration: float | None = None
+    original_resolution: str | None = None
+    output_size_mb: float | None = None
     used_stream_copy: bool = False
 
 
@@ -36,7 +35,7 @@ class GDriveTrimmer:
     """
 
     def __init__(self, output_dir: str = "./downloads", 
-                 temp_dir: Optional[str] = None,
+                 temp_dir: str | None = None,
                  ffmpeg_path: str = "ffmpeg",
                  ffprobe_path: str = "ffprobe"):
         self.output_dir = Path(output_dir)
@@ -99,9 +98,9 @@ class GDriveTrimmer:
              drive_url: str,
              start_time: float,  # seconds
              end_time: float,    # seconds
-             output_filename: Optional[str] = None,
+             output_filename: str | None = None,
              mode: Literal['accurate', 'fast', 'auto'] = 'auto',
-             video_codec: Optional[str] = None,  # None = auto-detect/copy
+             video_codec: str | None = None,  # None = auto-detect/copy
              crf: int = 18,  # For re-encode mode (18 = visually lossless)
              preset: str = 'slow',  # Encoding speed/quality tradeoff
              include_audio: bool = True) -> TrimResult:
@@ -252,7 +251,7 @@ class GDriveTrimmer:
 
     def download_full(self, 
                       drive_url: str,
-                      output_filename: Optional[str] = None,
+                      output_filename: str | None = None,
                       use_stream_copy: bool = True) -> TrimResult:
         """
         Download a full Google Drive video without trimming.

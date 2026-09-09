@@ -1,5 +1,5 @@
 """
-YFetch AI Finder
+Video Tool AI Finder
 Watch a video, find the parts that match a plain-English description,
 and write them out as a CSV in the same shape auto_compiler.py expects:
 
@@ -28,12 +28,12 @@ Examples:
     python -m src.ai_finder "match.mp4" "goalkeeper saves" -l "Keeper Saves" --compile
 """
 
-import os
-import re
+import argparse
 import csv
 import json
+import os
+import re
 import time
-import argparse
 
 try:
     from dotenv import load_dotenv
@@ -41,10 +41,10 @@ try:
 except ImportError:
     pass  # falls back to whatever is already set in the environment
 
-from ..core import find_ffmpeg, find_ffprobe, seconds_to_timestamp, extract_video_id
-from .auto_compiler import detect_source_type, download_video, AutoCompiler
-
 import subprocess
+
+from ..core import extract_video_id, find_ffmpeg, find_ffprobe, seconds_to_timestamp
+from .auto_compiler import AutoCompiler, detect_source_type, download_video
 
 try:
     from google import genai
@@ -55,7 +55,7 @@ except ImportError:
 
 
 DEFAULT_MODEL = "gemini-3.6-flash"
-DEFAULT_DOWNLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'YFetch')
+DEFAULT_DOWNLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'Video-Tool')
 
 
 # === VIDEO LENGTH ===
@@ -332,7 +332,7 @@ def find_clips(video_source, description, label, output_csv,
 
 def main():
     parser = argparse.ArgumentParser(
-        description='YFetch AI Finder -- describe what you want, get a CSV auto_compiler.py can use',
+        description='Video Tool AI Finder -- describe what you want, get a CSV auto_compiler.py can use',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument('video', help='Local video path or YouTube URL')

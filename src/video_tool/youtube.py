@@ -1,6 +1,6 @@
 """Shared YouTube/yt-dlp operations.
 
-All runnable YFetch versions use this module so download behaviour stays
+All runnable Video Tool versions use this module so download behaviour stays
 consistent. UI code is intentionally absent; callers receive ordinary
 Python values/exceptions and decide how to present them.
 """
@@ -8,14 +8,13 @@ Python values/exceptions and decide how to present them.
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
 
 import yt_dlp
 
 from .core import extract_video_id, project_path
-
 
 ProgressHook = Callable[[dict], None]
 
@@ -27,11 +26,11 @@ class DownloadOptions:
     output_dir: str
     format_type: str = "MP4"
     quality: str = "Best"
-    cookie_browser: Optional[str] = None
-    cookie_file: Optional[str] = None
+    cookie_browser: str | None = None
+    cookie_file: str | None = None
     bypass_no_auth: bool = False
-    progress_hook: Optional[ProgressHook] = None
-    remote_components: Optional[list[str]] = None
+    progress_hook: ProgressHook | None = None
+    remote_components: list[str] | None = None
 
 
 def quality_filter(quality: str) -> str:
@@ -70,11 +69,11 @@ def build_ydl_options(options: DownloadOptions) -> dict:
     has_auth = False
 
     # A local Netscape cookies.txt file is the preferred non-browser
-    # authentication mechanism. This lets YFetch work without a live
+    # authentication mechanism. This lets Video Tool work without a live
     # browser session or browser-cookie extraction.
     cookie_file = options.cookie_file
     if not cookie_file:
-        # Normal YFetch authentication: place a Netscape-format
+        # Normal Video Tool authentication: place a Netscape-format
         # youtube_cookies.txt in the project root. This works without a
         # browser session and is preferred over browser-cookie extraction.
         candidate = project_path("youtube_cookies.txt")
@@ -133,7 +132,7 @@ def build_ydl_options(options: DownloadOptions) -> dict:
     return ydl_options
 
 
-def find_downloaded_file(folder: str, format_type: str) -> Optional[str]:
+def find_downloaded_file(folder: str, format_type: str) -> str | None:
     """Return the newest likely output file in a download directory."""
     try:
         files = [
@@ -161,7 +160,7 @@ def find_downloaded_file(folder: str, format_type: str) -> Optional[str]:
     return files[0][0]
 
 
-def video_info(url: str, cookie_browser: Optional[str] = None) -> dict:
+def video_info(url: str, cookie_browser: str | None = None) -> dict:
     """Fetch metadata without downloading a video."""
     options = {"quiet": True, "no_warnings": True}
     if cookie_browser and cookie_browser.lower() != "none":
@@ -176,7 +175,7 @@ def download_url(
     options: DownloadOptions,
     *,
     download: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """Download one URL and return the resulting file path."""
     ydl_options = build_ydl_options(options)
 
@@ -211,7 +210,7 @@ def download_many(
     urls: list[str],
     options: DownloadOptions,
     *,
-    progress_hook: Optional[ProgressHook] = None,
+    progress_hook: ProgressHook | None = None,
 ) -> list[str]:
     """Download multiple URLs sequentially, preserving version behaviour."""
     results: list[str] = []
@@ -227,6 +226,6 @@ def download_many(
     return results
 
 
-def video_id(url: str) -> Optional[str]:
+def video_id(url: str) -> str | None:
     """Shared alias used by callers that need the YouTube cache key."""
     return extract_video_id(url)

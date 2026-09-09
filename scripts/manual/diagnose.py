@@ -1,6 +1,5 @@
+
 import requests
-import re
-import sys
 
 FILE_ID = "1IoTfwAaEYL3UH6ImbNH1JNW69zL6_l4F"
 URL = f"https://drive.google.com/uc?export=download&id={FILE_ID}"

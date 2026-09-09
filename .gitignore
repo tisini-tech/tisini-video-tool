@@ -16,6 +16,6 @@ downloads/
 *.mp3
 *.mkv
 *.webm
-yfetch_*_downloads.json
-yfetch_*_cache.json
-yfetch_*_log.txt
+video_tool_*_downloads.json
+video_tool_*_cache.json
+video_tool_*_log.txt

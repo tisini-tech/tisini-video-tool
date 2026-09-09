@@ -1,4 +1,4 @@
-// YFetch Unified CSV Format v3.0
+// Video Tool Unified CSV Format v3.0
 // The match_id column accepts ANY source type:
 //   - YouTube URL: https://www.youtube.com/watch?v=ABC123
 //   - Local path:  /home/lab/videos/match1.mp4  (or just match1.mp4)

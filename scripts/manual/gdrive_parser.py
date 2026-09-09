@@ -1,4 +1,4 @@
-from yfetch.gdrive.parser import GDriveURLParser, is_drive_url
+from video_tool.gdrive.parser import GDriveURLParser, is_drive_url
 
 # ═══════════════════════════════════════════════════════════════════
 # STEP 1: URL PARSING TEST

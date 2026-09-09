@@ -1,0 +1,13 @@
+# Runtime dependencies for video-tool.
+# Kept in sync with the [project.dependencies] table in pyproject.toml —
+# that file is the source of truth; this exists for `pip install -r
+# requirements.txt` workflows that don't use an editable install.
+
+yt-dlp>=2025.1.0
+requests>=2.32.0
+python-dotenv>=1.0.0
+filelock>=3.13.0
+
+# Optional extras, not installed by this file:
+#   pip install -e ".[dev]"   -> pytest>=8.0, ruff>=0.8
+#   pip install -e ".[ai]"    -> google-genai>=1.0.0

@@ -1,6 +1,7 @@
-import subprocess
 import json
-from yfetch.gdrive.parser import get_drive_stream_url
+import subprocess
+
+from video_tool.gdrive.parser import get_drive_stream_url
 
 # ═══════════════════════════════════════════════════════════════════
 # STEP 3: VIDEO PROBE TEST
@@ -25,7 +26,7 @@ try:
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
-        print(f"\n❌ ffprobe failed:")
+        print("\n❌ ffprobe failed:")
         print(f"   {result.stderr[:300]}")
         exit(1)
 

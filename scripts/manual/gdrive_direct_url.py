@@ -1,4 +1,4 @@
-from yfetch.gdrive.parser import GDriveURLParser
+from video_tool.gdrive.parser import GDriveURLParser
 
 # ═══════════════════════════════════════════════════════════════════
 # STEP 2: DIRECT URL ACCESS TEST
@@ -26,7 +26,7 @@ try:
     print(f"✓ Title: {info.title or 'Unknown'}")
 
     if info.confirm_token:
-        print(f"\n⚠️  Virus scan confirmation required")
+        print("\n⚠️  Virus scan confirmation required")
         print(f"   Token: {info.confirm_token[:30]}...")
         print("   (This is normal for files > 100MB)")
     else:

@@ -1,123 +1,200 @@
-# YFetch
+# Video Tool
 
-YFetch is a command-line video toolkit with multiple product versions that
-share one implementation layer.
+A command-line video toolkit for downloading, trimming, and compiling
+YouTube and local video content. Several product versions share one
+implementation layer, so a fix or improvement in shared code benefits every
+version at once.
 
-## Layout
+## Features
 
-```text
-src/yfetch/
+- **Basic / Pro / Unified downloaders** — YouTube and Google Drive sources,
+  with quality control, trimming, and (Pro) authenticated downloads.
+- **Auto-Compiler** — turns a raw sports-tagging CSV export into one merged
+  highlight compilation per player, automatically:
+  - detects raw tagger exports vs. already-compiler-ready CSVs
+  - infers whether tagged timestamps are seconds, milliseconds, or
+    microseconds, and corrects them
+  - merges a player's overlapping or back-to-back tagged moments into a
+    single clip instead of several near-duplicate ones
+  - remembers each match's YouTube URL after asking once
+  - writes a JSON manifest per match and per player for downstream apps
+- **AI Finder** — Gemini-assisted clip discovery from long-form video.
+- Shared local cache, so repeated compiles against the same match never
+  re-download the source video.
+
+## Project Layout
+
+src/video_tool/
 ├── core.py                 # FFmpeg, time, cache, config, CSV, trim, merge
-├── youtube.py              # Shared yt-dlp download behaviour
-├── gdrive/                 # Google Drive parsing and trimming
+├── csv_prep.py             # Raw tagger CSV -> compiler-ready CSV, + manifests
+├── version_check.py        # Daily yt-dlp/ffmpeg version check
+├── youtube.py               # Shared yt-dlp download behaviour
+├── gdrive/                  # Google Drive parsing and trimming
 └── versions/
-    ├── yfetch_basic.py     # Basic downloader
-    ├── yfetch_pro.py       # Pro downloader
-    ├── yfetch_unified.py   # YouTube + Google Drive API
-    ├── auto_compiler.py    # CSV-driven player compilation
-    ├── ai_finder.py        # AI-assisted clip discovery
-    └── merge_tool.py       # CLI merge utility
-```
+    ├── video_tool_basic.py    # Basic downloader
+    ├── video_tool_pro.py      # Pro downloader
+    ├── video_tool_unified.py  # YouTube + Google Drive API
+    ├── auto_compiler.py       # CSV-driven per-player compilation
+    ├── ai_finder.py           # AI-assisted clip discovery
+    └── merge_tool.py          # CLI merge utility
 
-The old Tkinter presentation layer has been removed. Each product version is
-now a runnable script/console entry point and imports shared behaviour from
-`yfetch.core`, `yfetch.youtube`, and `yfetch.gdrive`.
+Each product version is a runnable script and console entry point. Shared
+behaviour lives in `video_tool.core`, `video_tool.csv_prep`,
+`video_tool.youtube`, and `video_tool.gdrive` — a bug or behaviour change
+there should be fixed once, not independently in Basic, Pro, and
+Auto-Compiler.
+
+## Requirements
+
+- Python 3.12+
+- FFmpeg and FFprobe on `PATH` (required for trimming, merging, and video
+  metadata)
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+pip install -e ".[dev]"
 ```
 
-For AI clip discovery:
+For AI clip discovery, add the `ai` extra:
 
 ```bash
-python -m pip install -e ".[dev,ai]"
+pip install -e ".[dev,ai]"
 ```
 
-FFmpeg and FFprobe must also be installed and available on `PATH` for
-trimming, merging, and video metadata operations.
-
-## Run
+Or, without an editable install:
 
 ```bash
-yfetch-basic "https://www.youtube.com/watch?v=..."
-yfetch-pro "https://www.youtube.com/watch?v=..." --start 00:30 --end 01:00
-yfetch-auto-compiler tests/cape_verde.csv
+pip install -r requirements.txt
+```
+
+## Usage
+
+```bash
+vt-basic "https://www.youtube.com/watch?v=..."
+vt-pro "https://www.youtube.com/watch?v=..." --start 00:30 --end 01:00
+vt-auto-compiler path/to/raw_tagger_export.csv
 ```
 
 The module form is equivalent:
 
 ```bash
-python -m yfetch.versions.yfetch_basic "https://www.youtube.com/watch?v=..."
-python -m yfetch.versions.yfetch_pro "https://www.youtube.com/watch?v=..."
-python -m yfetch.versions.auto_compiler tests/cape_verde.csv
+python -m video_tool.versions.video_tool_basic "https://www.youtube.com/watch?v=..."
+python -m video_tool.versions.video_tool_pro "https://www.youtube.com/watch?v=..."
+python -m video_tool.versions.auto_compiler path/to/raw_tagger_export.csv
 ```
 
-## Architecture
+## Auto-Compiler Pipeline
 
-Product versions are thin entry points. Shared operations belong in shared
-modules.
+`vt-auto-compiler` accepts either a raw export straight from the tagging
+software or an already compiler-ready CSV — it detects which one it got and
+handles both without any manual conversion step.
+
+**On a raw export**, before anything else runs:
+
+1. **Header detection** — a `player` column plus a single time column marks
+   it as raw; `start_time`/`end_time` marks it as already compiler-ready and
+   it passes through untouched.
+2. **Time unit inference** — the largest raw timestamp in the file is
+   checked against a 4-hour ceiling (`MAX_MATCH_HOURS` in `csv_prep.py`) to
+   work out whether values are seconds, milliseconds, or microseconds, and
+   scales the whole column accordingly. This runs once per file, not per
+   row, since the unit is a property of the export, not of any one tag.
+3. **URL resolution** — the match's YouTube URL is looked up by filename in
+   a registry at `~/.cache/video-tool/matches.csv`. On a miss, it's asked
+   for once, interactively, and saved — every later run of that same file
+   skips the prompt.
+4. **Padding and merging** — each tag becomes a `[t - 0s, t + 2.5s]` window
+   (`PAD_BEFORE` / `PAD_AFTER` in `csv_prep.py`). Windows for the same
+   player that overlap are merged into one clip rather than producing
+   several near-duplicate ones, with their action labels joined (`Pass +
+   Progress Pass`).
+5. **Compiler-ready CSV** — written alongside the original as
+   `<name>_converted.csv`, in the same format Auto-Compiler has always read.
+
+**After compiling**, one manifest per match and one per player are written
+next to wherever the finished compilations landed
+(`<output-folder>/../manifests/`, so a custom `-o` is respected):
 
 ```text
-versions/*
-     │
-     ├── youtube.py
-     ├── core.py
-     └── gdrive/*
+manifests/
+├── matches/
+│   └── <video_id>.json     # written once per match, immutable after that
+└── players/
+    └── <player-slug>.json  # appended to on every match that player appears in
 ```
 
-A bug or behaviour change in a shared operation should therefore be fixed once,
-not independently in Basic, Pro, and Auto-Compiler.
+An app or website only needs to read `players/<slug>.json` to show one
+player everything they've ever been tagged in. Writes to a player's file are
+protected by a per-file lock, so two matches compiling at the same time and
+sharing a player can't silently overwrite each other.
 
-## Development
+## Dependency Version Checks
 
-```bash
-pytest
-ruff check .
-```
+Every `AutoCompiler` run checks, at most once per day, whether `yt-dlp` and
+`ffmpeg` are current:
 
-No local cookies, `.env` files, generated downloads, logs, caches, or virtual
-environments belong in Git.
+- **yt-dlp** auto-upgrades via `pip install --upgrade yt-dlp` — it's a
+  normal package in the project's own venv, so upgrading it is standard and
+  reversible.
+- **ffmpeg** is only reported, never auto-replaced — it's a system binary
+  outside pip's control, so updating it is left to you.
 
+Any network failure during this check (offline, GitHub rate limit) is
+logged and skipped; it never blocks a compile. State is tracked in
+`~/.cache/video-tool/version_check.json`.
 
-## Local cache and YouTube authentication
+## YouTube Authentication
 
-YFetch checks the shared cache and configured local download directories before
-making a network request. Auto-Compiler automatically downloads a missing
-YouTube source after those local/cache checks.
-
-For non-interactive YouTube authentication, place an exported Netscape-format
-cookie file at:
-
-    ./youtube_cookies.txt
-
-The file is ignored by Git. `--cookie-file` can be used to override it.
-Browser cookies are optional and are only used when explicitly requested.
-
-Basic and Pro ask for MP4 or MP3 when `--format` is omitted. Use
-`--format MP4` or `--format MP3` for scripts and automation.
-
-Auto-Compiler creates one merged compilation per player. Intermediate trimmed
-clips are stored under `.temp/` and are removed after a successful run unless
-`--keep-temp` is supplied.
-
-
-## YouTube authentication
-
-For normal operation, place your exported Netscape-format cookies file at:
+For non-interactive downloads, place an exported Netscape-format cookies
+file at:
 
 ```text
 <project-root>/youtube_cookies.txt
 ```
 
-YFetch automatically uses this file for Basic, Pro, Unified, and Auto-Compiler downloads. No browser login or `--cookie-browser` option is required.
+Basic, Pro, Unified, and Auto-Compiler all use this file automatically — no
+browser login or `--cookie-browser` flag is required for normal use. The
+file is ignored by Git; keep it private. `--cookie-file` overrides the
+default path, and `--cookie-browser` is available if you'd rather extract
+cookies from a live browser session instead.
 
-The real cookie file is ignored by Git. Keep it private.
+## Local Cache and Downloads
 
-Local/cache resolution happens before any YouTube request. YFetch checks its cache and the conventional `~/Downloads/yfetch` and `~/Downloads/YFetch` directories before downloading a missing source. A local file is only accepted as a match when the filename contains the requested YouTube video ID; the downloader never guesses that an unrelated file is the requested video.
+Local and cached sources are checked before any network request:
 
-Auto-Compiler downloads missing YouTube sources automatically. There is no `--download-missing` switch in the normal workflow.
-# tisini-video-tool
+1. The shared cache (`~/.cache/video-tool/`)
+2. Conventional local directories (`~/Downloads/video-tool`,
+   `~/Downloads/Video-Tool`)
+
+A local file is only accepted as a match when its filename contains the
+requested YouTube video ID — the downloader never guesses that an unrelated
+file is the one requested. Auto-Compiler downloads a missing YouTube source
+automatically once those checks come up empty.
+
+Auto-Compiler produces one merged compilation per player. Intermediate
+trimmed clips live under `.temp/` inside the output folder and are removed
+after a successful run unless `--keep-temp` is supplied.
+
+## Development
+
+Confirmed working as of this project's current state:
+
+```bash
+# Every module imports cleanly
+python -c "from video_tool.versions.auto_compiler import AutoCompiler"
+
+# Full test suite — 7 passed
+pytest
+
+# Lint — auto-fixes what it can, reports the rest
+ruff check --fix .
+```
+
+`csv_prep.py` and `version_check.py` are lint-clean under the project's
+`ruff` config (`line-length = 88`, `select = ["E", "F", "I", "UP"]`).
+
+Nothing local — cookies, `.env` files, generated downloads, logs, caches, or
+virtual environments — belongs in Git.

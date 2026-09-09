@@ -1,28 +1,27 @@
 """
-GDrive Parser Module for YFetch
+GDrive Parser Module for Video Tool
 Handles Google Drive shared video links
 """
 import re
-import requests
 import urllib.parse
 from dataclasses import dataclass
-from typing import Optional, Tuple
-import json
+
+import requests
 
 
 @dataclass
 class GDriveVideoInfo:
     """Parsed Google Drive video metadata"""
     file_id: str
-    title: Optional[str] = None
-    mime_type: Optional[str] = None
-    size_bytes: Optional[int] = None
-    duration_sec: Optional[float] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    direct_url: Optional[str] = None
+    title: str | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
+    duration_sec: float | None = None
+    width: int | None = None
+    height: int | None = None
+    direct_url: str | None = None
     is_streamable: bool = False
-    confirm_token: Optional[str] = None
+    confirm_token: str | None = None
 
 
 class GDriveError(Exception):
@@ -54,7 +53,7 @@ class GDriveURLParser:
             'Accept-Language': 'en-US,en;q=0.5',
         })
 
-    def extract_file_id(self, url: str) -> Optional[str]:
+    def extract_file_id(self, url: str) -> str | None:
         """Extract the file ID from any Google Drive URL format"""
         for pattern in self.PATTERNS:
             match = re.search(pattern, url)
@@ -66,14 +65,14 @@ class GDriveURLParser:
         """Check if URL is a valid Google Drive share link"""
         return self.extract_file_id(url) is not None
 
-    def _build_direct_url(self, file_id: str, confirm_token: Optional[str] = None) -> str:
+    def _build_direct_url(self, file_id: str, confirm_token: str | None = None) -> str:
         """Build the direct download URL"""
         params = {'export': 'download', 'id': file_id}
         if confirm_token:
             params['confirm'] = confirm_token
         return f"{self.DOWNLOAD_BASE}?{urllib.parse.urlencode(params)}"
 
-    def _fetch_confirm_token(self, file_id: str) -> Tuple[Optional[str], dict]:
+    def _fetch_confirm_token(self, file_id: str) -> tuple[str | None, dict]:
         """
         Fetch the confirmation token for large files.
         Google Drive shows a virus scan warning for files > 100MB or un-scannable files.
@@ -214,7 +213,7 @@ class GDriveURLParser:
             
         except GDriveError:
             raise
-        except Exception as e:
+        except Exception:
             # Non-fatal: we still have the direct URL, but mark as not streamable
             info.is_streamable = False
         

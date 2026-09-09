@@ -1,4 +1,4 @@
-"""Run the default YFetch entry point."""
+"""Run the default Video Tool entry point."""
 
 from .versions.basic import main
 

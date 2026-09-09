@@ -3,7 +3,7 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "yfetch"
+name = "video-tool"
 version = "3.0.0"
 description = "YouTube downloader and video compilation toolkit"
 readme = "README.md"
@@ -12,6 +12,7 @@ dependencies = [
     "yt-dlp>=2025.1.0",
     "requests>=2.32.0",
     "python-dotenv>=1.0.0",
+    "filelock>=3.13.0",
 ]
 
 [project.optional-dependencies]
@@ -24,13 +25,13 @@ dev = [
 ]
 
 [project.scripts]
-yfetch = "yfetch.versions.yfetch_basic:main"
-yfetch-basic = "yfetch.versions.yfetch_basic:main"
-yfetch-pro = "yfetch.versions.yfetch_pro:main"
-yfetch-unified = "yfetch.versions.yfetch_unified:main"
-yfetch-auto-compiler = "yfetch.versions.auto_compiler:main"
-yfetch-merge = "yfetch.versions.merge_tool:main"
-yfetch-ai-finder = "yfetch.versions.ai_finder:main"
+vt = "video_tool.versions.video_tool_basic:main"
+vt-basic = "video_tool.versions.video_tool_basic:main"
+vt-pro = "video_tool.versions.video_tool_pro:main"
+vt-unified = "video_tool.versions.video_tool_unified:main"
+vt-auto-compiler = "video_tool.versions.auto_compiler:main"
+vt-merge = "video_tool.versions.merge_tool:main"
+vt-ai-finder = "video_tool.versions.ai_finder:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

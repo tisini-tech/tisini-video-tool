@@ -1,5 +1,5 @@
 """
-🎬 YFetch Auto-Compiler v2.5
+🎬 Video Tool Auto-Compiler v2.5
 Automatically generate player compilations from a CSV of timestamps.
 
 New in v2.5:
@@ -9,48 +9,41 @@ New in v2.5:
 • One unified command for cached and new videos
 """
 
-import os
-import sys
-import re
-import shutil
 import argparse
-import threading
 import json
+import os
+import re
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from pathlib import Path
 
 try:
     from .core import (
-        find_ffmpeg,
-        parse_time_to_seconds,
-        seconds_to_timestamp,
-        load_cache,
-        save_cache,
-        get_cached_path,
         add_to_cache,
-        load_config,
-        trim_clip,
-        merge_clips,
-        read_csv_entries,
-        is_valid_youtube_url,
         extract_video_id,
+        find_ffmpeg,
+        get_cached_path,
+        is_valid_youtube_url,
+        load_cache,
+        load_config,
+        merge_clips,
+        parse_time_to_seconds,
+        read_csv_entries,
+        save_cache,
+        seconds_to_timestamp,
+        trim_clip,
     )
 except ImportError:
     from core import (
-        find_ffmpeg,
-        parse_time_to_seconds,
-        seconds_to_timestamp,
-        load_cache,
-        save_cache,
-        get_cached_path,
         add_to_cache,
-        load_config,
-        trim_clip,
+        extract_video_id,
+        find_ffmpeg,
+        get_cached_path,
+        is_valid_youtube_url,
+        load_cache,
         merge_clips,
         read_csv_entries,
-        is_valid_youtube_url,
-        extract_video_id,
+        trim_clip,
     )
 
 try:
@@ -61,16 +54,16 @@ except ImportError:
 
 
 # === CONFIG ===
-DEFAULT_OUTPUT_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'YFetch', 'Compilations')
-DEFAULT_DOWNLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'YFetch')
-PRO_CONFIG_FILE = "yfetch_pro_config.json"
+DEFAULT_OUTPUT_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'Video Tool', 'Compilations')
+DEFAULT_DOWNLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'Video Tool')
+PRO_CONFIG_FILE = "video_tool_pro_config.json"
 
 
 def _load_pro_cookie_browser():
-    """Load cookie_browser setting from YFetch Pro config if available."""
+    """Load cookie_browser setting from Video Tool Pro config if available."""
     try:
         if os.path.exists(PRO_CONFIG_FILE):
-            with open(PRO_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            with open(PRO_CONFIG_FILE, encoding='utf-8') as f:
                 cfg = json.load(f)
                 return cfg.get('cookie_browser')
     except Exception:
@@ -135,10 +128,10 @@ def download_video(video_id, url, folder, format_type='MP4', quality='Best',
             print(f"  🔐 Using browser cookies: {cookie_browser}")
             has_auth = True
         else:
-            print(f"  🌐 No auth provided — attempting without cookies...")
+            print("  🌐 No auth provided — attempting without cookies...")
 
         if not has_auth and bypass_no_auth:
-            print(f"  🛡️  Enabling no-auth bypass mode...")
+            print("  🛡️  Enabling no-auth bypass mode...")
             opts['extractor_args'] = {
                 'youtube': {
                     'player_client': 'android',
@@ -182,11 +175,11 @@ def download_video(video_id, url, folder, format_type='MP4', quality='Best',
         except Exception as e:
             err_msg = str(e)
             if "Sign in to confirm" in err_msg or "confirm you’re not a bot" in err_msg:
-                print(f"  ⚠️  YouTube bot-check blocked this download.")
+                print("  ⚠️  YouTube bot-check blocked this download.")
                 if not has_auth:
-                    print(f"      → Bypass mode failed. YouTube requires authentication for this video.")
-                print(f"      → Try: select a browser with an active YouTube login,")
-                print(f"      → Or: export cookies.txt from your browser and select it below.")
+                    print("      → Bypass mode failed. YouTube requires authentication for this video.")
+                print("      → Try: select a browser with an active YouTube login,")
+                print("      → Or: export cookies.txt from your browser and select it below.")
             else:
                 print(f"  ❌ Download failed for {video_id}: {err_msg}")
             _download_results[video_id] = None
@@ -373,7 +366,7 @@ class AutoCompiler:
                 results[player] = output
 
         if not self.keep_temp:
-            print(f"\n🧹 Cleaning up temp files...")
+            print("\n🧹 Cleaning up temp files...")
             for clip in self.temp_clips:
                 try:
                     if os.path.exists(clip):
@@ -408,7 +401,7 @@ class AutoCompiler:
 # === CLI INTERFACE ===
 def main():
     parser = argparse.ArgumentParser(
-        description='YFetch Auto-Compiler — high quality video compilations',
+        description='Video Tool Auto-Compiler — high quality video compilations',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -427,7 +420,7 @@ Examples:
     )
     parser.add_argument('csv', help='Path to CSV file with timestamps')
     parser.add_argument('-o', '--output', default=DEFAULT_OUTPUT_FOLDER,
-                        help='Output folder (default: ~/Downloads/YFetch/Compilations)')
+                        help='Output folder (default: ~/Downloads/Video Tool/Compilations)')
     parser.add_argument('-r', '--resolution', default='1080p',
                         choices=['1080p', '720p', '480p', '360p'],
                         help='Output resolution')

@@ -1,4 +1,4 @@
-from yfetch.gdrive.trimmer import download_drive_video
+from video_tool.gdrive.trimmer import download_drive_video
 
 # ═══════════════════════════════════════════════════════════════════
 # STEP 4: FULL DOWNLOAD TEST
@@ -15,7 +15,7 @@ print("Press Ctrl+C to cancel if the file is large.\n")
 result = download_drive_video(TEST_URL, output_filename="test_full.mp4")
 
 if result.success:
-    print(f"\n✅ DOWNLOAD SUCCESS!")
+    print("\n✅ DOWNLOAD SUCCESS!")
     print(f"   File: {result.output_path}")
     print(f"   Size: {result.output_size_mb:.2f} MB")
     print(f"   Resolution: {result.original_resolution}")

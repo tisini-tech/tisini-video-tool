@@ -1,4 +1,4 @@
-"""YFetch Pro command-line version.
+"""Video Tool Pro command-line version.
 
 Pro keeps the original additions over Basic: caching, segment trimming,
 configurable browser authentication, and automatic deletion of the original
@@ -14,14 +14,13 @@ from pathlib import Path
 
 from ..core import (
     add_to_cache,
-    get_cached_path,
-    resolve_cached_file,
+    extract_video_id,
+    find_ffmpeg,
     load_cache,
     load_config,
     load_download_count,
-    find_ffmpeg,
-    extract_video_id,
     parse_time_to_seconds,
+    resolve_cached_file,
     save_config,
     save_download_count,
     seconds_to_timestamp,
@@ -30,7 +29,7 @@ from ..core import (
 from ..youtube import DownloadOptions, download_url
 from .common_cli import add_common_download_arguments, parse_urls, prompt_format
 
-CONFIG_FILE = "yfetch_pro_config.json"
+CONFIG_FILE = "video_tool_pro_config.json"
 
 
 def _load_pro_config() -> dict:
@@ -52,8 +51,8 @@ def _save_pro_config(config: dict) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="yfetch-pro",
-        description="YFetch Pro command-line downloader with cache and trimming.",
+        prog="video_tool-pro",
+        description="Video Tool Pro command-line downloader with cache and trimming.",
     )
     add_common_download_arguments(parser)
     parser.add_argument("--start", help="Trim start time: seconds, MM:SS, or HH:MM:SS")

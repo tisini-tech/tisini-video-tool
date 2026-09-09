@@ -1,4 +1,4 @@
-"""YFetch Auto-Compiler.
+"""Video Tool Auto-Compiler.
 
 Compiles player clips from CSV timestamps. Source resolution, trimming and
 merging are kept separate from the CLI so the compiler can also be imported.
@@ -24,29 +24,28 @@ from ..core import (
     extract_video_id,
     find_ffmpeg,
     get_cached_path,
-    resolve_cached_file,
     is_valid_youtube_url,
     load_cache,
     merge_clips,
-    parse_time_to_seconds,
     read_csv_entries,
-    save_cache,
-    seconds_to_timestamp,
+    resolve_cached_file,
     trim_clip,
 )
+from ..csv_prep import get_compiler_csv, write_manifests
+from ..version_check import check_dependencies
 from ..youtube import DownloadOptions, download_url
 
 # === CONFIG ===
-DEFAULT_OUTPUT_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'yfetch', 'Compilations')
-DEFAULT_DOWNLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'yfetch')
-PRO_CONFIG_FILE = "yfetch_pro_config.json"
+DEFAULT_OUTPUT_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'video-tool', 'Compilations')
+DEFAULT_DOWNLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'Downloads', 'video-tool')
+PRO_CONFIG_FILE = "video_tool_pro_config.json"
 
 
 def _load_pro_cookie_browser():
-    """Load cookie_browser setting from YFetch Pro config if available."""
+    """Load cookie_browser setting from Video Tool Pro config if available."""
     try:
         if os.path.exists(PRO_CONFIG_FILE):
-            with open(PRO_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            with open(PRO_CONFIG_FILE, encoding='utf-8') as f:
                 cfg = json.load(f)
                 return cfg.get('cookie_browser')
     except Exception:
@@ -168,7 +167,14 @@ class AutoCompiler:
                  download_missing=True, quality='Best', dry_run=False,
                  keep_temp=False, jobs=1, cookie_browser=None, cookie_file=None,
                  bypass_no_auth=True, crf=18, preset="slow"):
-        self.csv_path = csv_path
+        # Checked at most once a day; never blocks a run if GitHub is
+        # unreachable. See version_check.py for why yt-dlp auto-upgrades
+        # but ffmpeg only gets a warning.
+        check_dependencies()
+
+        # Raw tagger exports get converted here; already-compiler-ready
+        # CSVs pass through untouched. See csv_prep.py.
+        self.csv_path = get_compiler_csv(csv_path)
         self.output_folder = output_folder or DEFAULT_OUTPUT_FOLDER
         self.resolution = resolution
         self.bitrate_kbps = bitrate_kbps
@@ -430,13 +436,28 @@ class AutoCompiler:
         print(f"\n  Trimmed: {self.stats['trimmed']}  |  Failed: {self.stats['failed']}")
         print(f"  Local: {self.stats['local']}  |  Cached: {self.stats['cached']}  |  Downloaded: {self.stats['downloaded']}")
 
+        # Group finished compilations by player into the manifest files the
+        # app reads from, so they're ready without any extra step.
+        if results and not self.dry_run:
+            raw_match_id = entries[0]['match_id']
+            match_id = extract_video_id(raw_match_id) or raw_match_id
+            # Manifests live next to whatever output folder was actually
+            # used this run, not a fixed default, so a manifest and the
+            # files it points to are always found together.
+            manifest_root = os.path.join(
+                os.path.dirname(self.output_folder), 'manifests'
+            )
+            write_manifests(
+                match_id, raw_match_id, results, manifest_root=manifest_root
+            )
+
         return results
 
 
 # === CLI INTERFACE ===
 def main():
     parser = argparse.ArgumentParser(
-        description='YFetch Auto-Compiler v3.0 -- unified CSV for YouTube, local files, and cached videos',
+        description='Video Tool Auto-Compiler v3.0 -- unified CSV for YouTube, local files, and cached videos',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 UNIFIED CSV FORMAT:
@@ -449,18 +470,18 @@ UNIFIED CSV FORMAT:
 
 Examples:
   # Local/cache sources are used first; missing YouTube sources download automatically.
-  python -m yfetch.versions.auto_compiler tests/cape_verde.csv
+  python -m video_tool.versions.auto_compiler tests/cape_verde.csv
 
   # Maximum quality (visually lossless, larger files)
   python -m src.auto_compiler tests/cape_verde.csv --crf 16 --preset slower
 
   # The local youtube_cookies.txt file is used automatically when present.
-  python -m yfetch.versions.auto_compiler tests/cape_verde.csv
+  python -m video_tool.versions.auto_compiler tests/cape_verde.csv
         """
     )
     parser.add_argument('csv', help='Path to CSV file with timestamps')
     parser.add_argument('-o', '--output', default=DEFAULT_OUTPUT_FOLDER,
-                        help='Output folder (default: ~/Downloads/YFetch/Compilations)')
+                        help='Output folder (default: ~/Downloads/Video Tool/Compilations)')
     parser.add_argument('-r', '--resolution', default='1080p',
                         choices=['1080p', '720p', '480p', '360p'],
                         help='Output resolution')

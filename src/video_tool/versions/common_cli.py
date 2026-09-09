@@ -1,10 +1,10 @@
-"""Shared command-line helpers used by every YFetch version."""
+"""Shared command-line helpers used by every Video Tool version."""
 
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from ..core import is_valid_youtube_url
 
@@ -46,7 +46,7 @@ def add_common_download_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("urls", nargs="+", help="YouTube URL(s)")
     parser.add_argument(
         "-o", "--output",
-        default=str(Path.home() / "Downloads" / "yfetch"),
+        default=str(Path.home() / "Downloads" / "video-tool"),
         help="Output directory",
     )
     parser.add_argument(

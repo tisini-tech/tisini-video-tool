@@ -1,4 +1,4 @@
-"""YFetch Basic: the lightweight command-line downloader.
+"""Video Tool Basic: the lightweight command-line downloader.
 Download behaviour is delegated to the shared YouTube module so Basic and Pro cannot drift apart.
 """
 
@@ -7,14 +7,21 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from ..core import load_download_count, save_download_count, load_cache, resolve_cached_file, add_to_cache, extract_video_id
+from ..core import (
+    add_to_cache,
+    extract_video_id,
+    load_cache,
+    load_download_count,
+    resolve_cached_file,
+    save_download_count,
+)
 from ..youtube import DownloadOptions, download_url
 from .common_cli import add_common_download_arguments, parse_urls, prompt_format
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="yfetch-basic",
+        prog="video_tool-basic",
         description="Download YouTube videos or audio.",
     )
     add_common_download_arguments(parser)

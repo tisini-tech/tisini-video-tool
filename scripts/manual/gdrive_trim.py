@@ -1,4 +1,4 @@
-from yfetch.gdrive.trimmer import GDriveTrimmer
+from video_tool.gdrive.trimmer import GDriveTrimmer
 
 # ═══════════════════════════════════════════════════════════════════
 # STEP 5: TRIM TESTS
@@ -17,7 +17,7 @@ print("\n--- Test 5A: Fast Trim (0s to 10s) ---")
 result = trimmer.trim(TEST_URL, start_time=0, end_time=10,
                       mode='fast', output_filename="test_fast.mp4")
 if result.success:
-    print(f"✅ FAST TRIM OK")
+    print("✅ FAST TRIM OK")
     print(f"   Size: {result.output_size_mb:.2f} MB")
     print(f"   Stream copy: {result.used_stream_copy}")
     print(f"   Duration: {result.trimmed_duration:.1f}s")
@@ -29,7 +29,7 @@ print("\n--- Test 5B: Accurate Trim (30s to 45s) ---")
 result = trimmer.trim(TEST_URL, start_time=30, end_time=45,
                       mode='accurate', output_filename="test_accurate.mp4", crf=18)
 if result.success:
-    print(f"✅ ACCURATE TRIM OK")
+    print("✅ ACCURATE TRIM OK")
     print(f"   Size: {result.output_size_mb:.2f} MB")
     print(f"   Stream copy: {result.used_stream_copy}")
     print(f"   Duration: {result.trimmed_duration:.1f}s")
@@ -41,7 +41,7 @@ print("\n--- Test 5C: Auto Trim (60s to 90s) ---")
 result = trimmer.trim(TEST_URL, start_time=60, end_time=90,
                       mode='auto', output_filename="test_auto.mp4")
 if result.success:
-    print(f"✅ AUTO TRIM OK")
+    print("✅ AUTO TRIM OK")
     print(f"   Size: {result.output_size_mb:.2f} MB")
     print(f"   Stream copy: {result.used_stream_copy}")
     print(f"   Duration: {result.trimmed_duration:.1f}s")

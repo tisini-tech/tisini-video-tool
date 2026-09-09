@@ -1,11 +1,9 @@
 import csv
 import os
-import tempfile
-from pathlib import Path
 
 import pytest
 
-from yfetch.core import (
+from video_tool.core import (
     add_to_cache,
     extract_video_id,
     find_ffmpeg,
@@ -13,8 +11,8 @@ from yfetch.core import (
     is_valid_youtube_url,
     load_cache,
     parse_time_to_seconds,
-    resolve_cached_file,
     read_csv_entries,
+    resolve_cached_file,
     seconds_to_timestamp,
 )
 
@@ -44,7 +42,7 @@ def test_cache_roundtrip(tmp_path, monkeypatch):
     real_video = tmp_path / "video.mp4"
     real_video.write_bytes(b"video")
 
-    import yfetch.core as core
+    import video_tool.core as core
 
     monkeypatch.setattr(core, "CACHE_FILE", str(cache_file))
 

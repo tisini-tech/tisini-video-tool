@@ -31,6 +31,7 @@ class DownloadOptions:
     bypass_no_auth: bool = False
     progress_hook: ProgressHook | None = None
     remote_components: list[str] | None = None
+    ffmpeg_location: str | None = None
 
 
 def quality_filter(quality: str) -> str:
@@ -65,6 +66,12 @@ def build_ydl_options(options: DownloadOptions) -> dict:
 
     if options.remote_components is not None:
         ydl_options["remote_components"] = options.remote_components
+
+    # Only set when a caller supplies one explicitly (e.g. the GUI's
+    # bundled binary) -- omitted otherwise, so every existing version
+    # keeps relying on ffmpeg being found on PATH exactly as before.
+    if options.ffmpeg_location:
+        ydl_options["ffmpeg_location"] = options.ffmpeg_location
 
     has_auth = False
 

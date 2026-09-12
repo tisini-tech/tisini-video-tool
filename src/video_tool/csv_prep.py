@@ -17,8 +17,8 @@ from filelock import FileLock, Timeout
 
 from .core import VIDEO_TOOL_CACHE_DIR, parse_time_to_seconds, seconds_to_timestamp
 
-PAD_BEFORE = 0   # seconds kept before each tagged moment
-PAD_AFTER = 2.5    # seconds kept after each tagged moment
+PAD_BEFORE = 2.5   # seconds kept before each tagged moment
+PAD_AFTER = 4.0    # seconds kept after each tagged moment
 LOCK_TIMEOUT = 10  # seconds to wait for a manifest file lock before giving up
 MAX_MATCH_HOURS = 4  # no real match video runs longer than this
 

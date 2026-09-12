@@ -24,6 +24,7 @@ version at once.
 
 ## Project Layout
 
+```text
 src/video_tool/
 ├── core.py                 # FFmpeg, time, cache, config, CSV, trim, merge
 ├── csv_prep.py             # Raw tagger CSV -> compiler-ready CSV, + manifests
@@ -37,6 +38,7 @@ src/video_tool/
     ├── auto_compiler.py       # CSV-driven per-player compilation
     ├── ai_finder.py           # AI-assisted clip discovery
     └── merge_tool.py          # CLI merge utility
+```
 
 Each product version is a runnable script and console entry point. Shared
 behaviour lives in `video_tool.core`, `video_tool.csv_prep`,
@@ -106,7 +108,7 @@ handles both without any manual conversion step.
    a registry at `~/.cache/video-tool/matches.csv`. On a miss, it's asked
    for once, interactively, and saved — every later run of that same file
    skips the prompt.
-4. **Padding and merging** — each tag becomes a `[t - 0s, t + 2.5s]` window
+4. **Padding and merging** — each tag becomes a `[t - 2.5s, t + 4s]` window
    (`PAD_BEFORE` / `PAD_AFTER` in `csv_prep.py`). Windows for the same
    player that overlap are merged into one clip rather than producing
    several near-duplicate ones, with their action labels joined (`Pass +

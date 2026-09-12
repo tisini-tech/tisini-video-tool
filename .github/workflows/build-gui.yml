@@ -1,0 +1,91 @@
+name: Build GUI
+
+# Builds a standalone video-tool-gui executable for Windows, Linux, and
+# macOS, each on its own native runner (PyInstaller doesn't cross-compile,
+# so this can't be done from a single machine -- see the discussion in
+# README.md's Development section for why).
+#
+# Push a tag like v1.0.0 to build all three and attach them to a GitHub
+# Release automatically. Or run manually from the Actions tab (Run
+# workflow) to test a build without cutting a release.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset_name: video-tool-gui-windows.exe
+            build_name: video-tool-gui
+            built_path: dist/video-tool-gui.exe
+          - os: ubuntu-latest
+            asset_name: video-tool-gui-linux
+            build_name: video-tool-gui
+            built_path: dist/video-tool-gui
+          - os: macos-latest
+            asset_name: video-tool-gui-macos
+            build_name: video-tool-gui
+            built_path: dist/video-tool-gui
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ubuntu-latest's Python doesn't include tkinter by default.
+      # Windows and macOS runners' Python builds already bundle Tk.
+      - name: Install tkinter (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Install project + PyInstaller
+        run: |
+          pip install -e ".[gui]"
+          pip install pyinstaller
+
+      - name: Build standalone executable
+        run: >
+          pyinstaller --onefile --windowed --name ${{ matrix.build_name }}
+          --paths src
+          --collect-data customtkinter
+          tools/gui_entry.py
+
+      - name: Rename artifact with OS suffix
+        shell: bash
+        run: cp "${{ matrix.built_path }}" "${{ matrix.asset_name }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifact folders
+        run: |
+          mkdir -p release-files
+          find artifacts -type f -exec cp {} release-files/ \;
+          ls -la release-files
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-files/*
+          generate_release_notes: true

@@ -1,0 +1,6 @@
+// Overlapping events for the same player
+player,video time,event,sub event
+Ada,10.0,Goal,Header
+Ada,12.0,Shot,On Target
+Ada,30.0,Save,Low
+Brian,11.0,Assist,Through Ball

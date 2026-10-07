@@ -1,0 +1,5 @@
+// Basic raw tagger export
+player,video time,event,sub event
+Ada,12.5,Goal,Header
+Brian,35.0,Save,Diving
+Ada,60.0,Shot,On Target

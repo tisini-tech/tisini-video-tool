@@ -24,6 +24,7 @@ is stale -- never on the path that gets someone unblocked the first time.
 from __future__ import annotations
 
 import json
+import logging
 import platform
 import shutil
 import stat
@@ -35,6 +36,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 ProgressCallback = Callable[[str], None] | None
 
@@ -119,8 +122,13 @@ def _download_direct(url: str, target: Path,
         tmp_path.replace(target)
         _make_executable(target)
         return True
-    except Exception as e:
-        _report(progress_callback, f"Download failed ({e}).")
+    except Exception:
+        logger.warning("Download of %s failed", url, exc_info=True)
+        _report(
+            progress_callback,
+            "Could not download a tool Video Tool needs. "
+            "Check your internet connection.",
+        )
         return False
 
 
@@ -135,7 +143,8 @@ def ensure_ytdlp(progress_callback: ProgressCallback = None) -> Path | None:
     asset_name = _YTDLP_ASSET_BY_OS.get(os_name)
 
     if not asset_name:
-        _report(progress_callback, f"Unsupported OS for yt-dlp bundling: {os_name}")
+        _report(progress_callback,
+                f"Video Tool cannot set up yt-dlp by itself on {os_name}.")
         return target if target.exists() else None
 
     if not target.exists():
@@ -175,9 +184,11 @@ def ensure_ytdlp(progress_callback: ProgressCallback = None) -> Path | None:
         if installed == latest_tag:
             return target  # already current
         _report(progress_callback, f"yt-dlp {installed} -> {latest_tag}, updating...")
-    except Exception as e:
+    except Exception:
+        logger.warning("yt-dlp freshness check failed", exc_info=True)
         _report(progress_callback,
-                f"Skipping yt-dlp freshness check ({e}). Using existing copy.")
+                "Could not check for a newer yt-dlp. "
+                "Using the copy you already have.")
         return target
 
     download_url = f"{_YTDLP_RELEASE_BASE}/{asset_name}"
@@ -199,13 +210,14 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
     os_name = platform.system()
     if os_name == "Darwin":
         _report(progress_callback,
-                "No automatic ffmpeg download for macOS yet -- install it with "
-                "'brew install ffmpeg' and it'll be found on PATH as a fallback.")
+                "On a Mac, install FFmpeg yourself with 'brew install ffmpeg'. "
+                "Video Tool will find it.")
         return None
 
     asset_name = _FFMPEG_ASSET_BY_OS.get(os_name)
     if not asset_name:
-        _report(progress_callback, f"Unsupported OS for ffmpeg bundling: {os_name}")
+        _report(progress_callback,
+                f"Video Tool cannot set up FFmpeg by itself on {os_name}.")
         return None
 
     _report(progress_callback, "Downloading ffmpeg (first run only, larger file)...")
@@ -236,8 +248,10 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
         shutil.rmtree(extract_dir, ignore_errors=True)
         _report(progress_callback, "ffmpeg ready.")
         return target
-    except Exception as e:
-        _report(progress_callback, f"ffmpeg setup failed ({e}).")
+    except Exception:
+        logger.warning("ffmpeg setup failed", exc_info=True)
+        _report(progress_callback,
+                "Could not set up FFmpeg. Some formats may not work.")
         archive_path.unlink(missing_ok=True)
         return None
 

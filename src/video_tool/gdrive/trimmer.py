@@ -1,20 +1,38 @@
 """
-GDrive Video Trimmer for Video Tool
-Downloads and trims Google Drive videos with quality preservation
+Google Drive video adapter for Video Tool.
+
+This module is intentionally thin.
+
+Responsibilities:
+    - Resolve a Google Drive URL into a direct stream URL.
+    - Delegate video processing to the shared core utilities.
+    - Preserve the existing public GDrive trimming/download API.
+
+FFmpeg processing, encoder selection, validation, and fallback behavior
+belong to video_tool.core.
 """
-import json
-import subprocess
-import tempfile
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from ..core import (
+    VideoToolError,
+    check_clip_length,
+    download_remote,
+    find_ffmpeg,
+    trim_remote,
+)
+from ..errors import plain_message
 from .parser import GDriveError, get_drive_stream_url
 
 
 @dataclass
 class TrimResult:
-    """Result of a trim operation"""
+    """Result of a Google Drive trim/download operation."""
+
     success: bool
     output_path: str | None = None
     error_message: str | None = None
@@ -26,254 +44,277 @@ class TrimResult:
 
 
 class GDriveTrimmer:
-    """
-    Trim Google Drive videos with frame-accurate cuts.
+    """Thin Google Drive adapter around the shared FFmpeg core."""
 
-    Strategy:
-    1. For frame-accurate cuts: Re-encode at original quality (lossless approach)
-    2. For keyframe-aligned cuts: Use stream copy (no quality loss, instant)
-    """
-
-    def __init__(self, output_dir: str = "./downloads", 
-                 temp_dir: str | None = None,
-                 ffmpeg_path: str = "ffmpeg",
-                 ffprobe_path: str = "ffprobe"):
+    def __init__(
+        self,
+        output_dir: str = "./downloads",
+        temp_dir: str | None = None,
+        ffmpeg_path: str | None = None,
+        ffprobe_path: str | None = None,
+    ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.temp_dir = Path(temp_dir) if temp_dir else Path(tempfile.gettempdir())
-        self.ffmpeg = ffmpeg_path
+
+        self.temp_dir = (
+            Path(temp_dir)
+            if temp_dir
+            else Path.cwd()
+        )
+
+        self.ffmpeg = ffmpeg_path or find_ffmpeg()
         self.ffprobe = ffprobe_path
 
-    def _probe_video(self, url: str) -> dict:
-        """Probe video metadata using ffprobe"""
-        cmd = [
-            self.ffprobe, '-v', 'error',
-            '-show_entries', 'format=duration,bit_rate,size:stream=codec_name,width,height,pix_fmt,r_frame_rate,bit_rate',
-            '-of', 'json',
-            url
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode != 0:
-            raise GDriveError(f"ffprobe failed: {result.stderr}")
-        return json.loads(result.stdout)
+        if not self.ffmpeg:
+            raise VideoToolError(
+                "FFmpeg was not found. Install FFmpeg and make sure it "
+                "is available on your PATH."
+            )
 
-    def _get_keyframe_times(self, url: str) -> list:
-        """Get list of keyframe timestamps for smart cutting"""
-        cmd = [
-            self.ffprobe, '-v', 'error',
-            '-select_streams', 'v:0',
-            '-show_entries', 'frame=pkt_pts_time,pict_type',
-            '-of', 'json',
-            url
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        if result.returncode != 0:
-            return []
+    def _stream_url(self, drive_url: str) -> str:
+        """Resolve a Google Drive URL to a direct media stream URL."""
 
-        data = json.loads(result.stdout)
-        keyframes = []
-        for frame in data.get('frames', []):
-            if frame.get('pict_type') == 'I':
-                try:
-                    keyframes.append(float(frame.get('pkt_pts_time', 0)))
-                except:
-                    pass
-        return keyframes
+        try:
+            return get_drive_stream_url(drive_url)
+        except GDriveError:
+            raise
+        except Exception as exc:
+            raise GDriveError(
+                "Video Tool could not open this Google Drive video. "
+                "Check that the link works and the file is shared.",
+                detail=str(exc),
+            ) from exc
 
-    def _find_nearest_keyframe(self, target_time: float, keyframes: list, direction: str = 'before') -> float:
-        """Find nearest keyframe to target time"""
-        if not keyframes:
-            return target_time
-
-        if direction == 'before':
-            # Find last keyframe before target
-            valid = [k for k in keyframes if k <= target_time]
-            return max(valid) if valid else keyframes[0]
-        else:
-            # Find first keyframe after target
-            valid = [k for k in keyframes if k >= target_time]
-            return min(valid) if valid else keyframes[-1]
-
-    def trim(self, 
-             drive_url: str,
-             start_time: float,  # seconds
-             end_time: float,    # seconds
-             output_filename: str | None = None,
-             mode: Literal['accurate', 'fast', 'auto'] = 'auto',
-             video_codec: str | None = None,  # None = auto-detect/copy
-             crf: int = 18,  # For re-encode mode (18 = visually lossless)
-             preset: str = 'slow',  # Encoding speed/quality tradeoff
-             include_audio: bool = True) -> TrimResult:
+    def trim(
+        self,
+        drive_url: str,
+        start_time: float,
+        end_time: float,
+        output_filename: str | None = None,
+        mode: Literal["accurate", "fast", "auto"] = "auto",
+        video_codec: str | None = None,
+        crf: int = 18,
+        preset: str = "slow",
+        include_audio: bool = True,
+    ) -> TrimResult:
         """
-        Trim a Google Drive video.
+        Trim a Google Drive video directly from its remote stream.
 
-        Args:
-            drive_url: Google Drive share URL
-            start_time: Start time in seconds (frame-accurate)
-            end_time: End time in seconds
-            output_filename: Output filename (auto-generated if None)
-            mode: 'accurate' = re-encode for frame accuracy
-                  'fast' = stream copy (keyframe-aligned only)
-                  'auto' = use stream copy if cuts align with keyframes
-            video_codec: Override output codec (None = match source or libx264)
-            crf: Quality for re-encode (lower = better, 18-23 recommended)
-            preset: Encoding preset (slow/veryslow = better quality)
+        The actual FFmpeg processing is delegated to core.trim_remote().
 
-        Returns:
-            TrimResult with operation details
+        mode:
+            accurate -> force re-encoding
+            fast     -> allow stream-copy first
+            auto     -> allow stream-copy first
+
+        If stream-copy fails validation, core.trim_remote() handles the
+        re-encode fallback automatically.
         """
+
         result = TrimResult(success=False)
 
         try:
-            # Step 1: Get direct stream URL
-            stream_url = get_drive_stream_url(drive_url)
-
-            # Step 2: Probe source video
-            probe = self._probe_video(stream_url)
-            fmt = probe.get('format', {})
-            streams = probe.get('streams', [])
-
-            result.original_duration = float(fmt.get('duration', 0))
-
-            video_stream = next((s for s in streams if s.get('codec_type') == 'video'), None)
-            if video_stream:
-                w = video_stream.get('width', '?')
-                h = video_stream.get('height', '?')
-                result.original_resolution = f"{w}x{h}"
-
-            # Validate time range
             if start_time < 0:
-                start_time = 0
-            if end_time > result.original_duration:
-                end_time = result.original_duration
+                start_time = 0.0
+
             if end_time <= start_time:
-                raise GDriveError(f"Invalid time range: {start_time} to {end_time}")
+                raise GDriveError(
+                    f"Invalid time range: {start_time} to {end_time}"
+                )
 
-            result.trimmed_duration = end_time - start_time
+            stream_url = self._stream_url(drive_url)
 
-            # Step 3: Determine cutting strategy
-            use_stream_copy = False
-            if mode in ('fast', 'auto'):
-                keyframes = self._get_keyframe_times(stream_url)
-                if keyframes:
-                    nearest_start = self._find_nearest_keyframe(start_time, keyframes, 'before')
-                    nearest_end = self._find_nearest_keyframe(end_time, keyframes, 'after')
-
-                    # Allow 0.5s tolerance for auto mode
-                    tolerance = 0.5 if mode == 'auto' else 0.05
-                    if abs(nearest_start - start_time) <= tolerance and abs(nearest_end - end_time) <= tolerance:
-                        use_stream_copy = True
-                        start_time = nearest_start
-                        end_time = nearest_end
-                        result.trimmed_duration = end_time - start_time
-
-            # Step 4: Build output filename
             if not output_filename:
-                safe_title = f"gdrive_trim_{start_time:.1f}_{end_time:.1f}"
-                ext = '.mp4'  # Default container
-                output_filename = f"{safe_title}{ext}"
+                output_filename = (
+                    f"gdrive_trim_{start_time:.1f}_{end_time:.1f}.mp4"
+                )
 
             output_path = self.output_dir / output_filename
 
-            # Step 5: Build ffmpeg command
-            cmd = [self.ffmpeg, '-y']
+            force_reencode = mode == "accurate"
 
-            # Input options for seeking
-            if use_stream_copy:
-                # Stream copy mode - fast, no quality loss
-                cmd.extend(['-ss', str(start_time), '-i', stream_url, 
-                           '-t', str(end_time - start_time),
-                           '-c', 'copy'])
-                if not include_audio:
-                    cmd.extend(['-an'])
-                result.used_stream_copy = True
-            else:
-                # Re-encode mode - frame accurate
-                # Use input seeking + output seeking for accuracy
-                cmd.extend(['-ss', str(start_time), '-i', stream_url,
-                           '-t', str(end_time - start_time)])
-
-                # Video encoding
-                if video_codec:
-                    cmd.extend(['-c:v', video_codec])
-                else:
-                    # Auto: try to match source codec, fallback to libx264
-                    src_codec = video_stream.get('codec_name', 'h264') if video_stream else 'h264'
-                    if src_codec in ('h264', 'avc1'):
-                        cmd.extend(['-c:v', 'libx264', '-profile:v', 'high', '-level', '4.2'])
-                    elif src_codec == 'hevc':
-                        cmd.extend(['-c:v', 'libx265'])
-                    elif src_codec == 'av1':
-                        cmd.extend(['-c:v', 'libsvtav1'])
-                    else:
-                        cmd.extend(['-c:v', 'libx264'])
-
-                cmd.extend([
-                    '-crf', str(crf),
-                    '-preset', preset,
-                    '-pix_fmt', 'yuv420p',
-                    '-movflags', '+faststart'
-                ])
-
-                # Audio
-                if include_audio:
-                    cmd.extend(['-c:a', 'aac', '-b:a', '192k'])
-                else:
-                    cmd.extend(['-an'])
-
-                result.used_stream_copy = False
-
-            cmd.append(str(output_path))
-
-            # Step 6: Execute
-            process = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=3600  # 1 hour max for large files
+            trim_remote(
+                self.ffmpeg,
+                stream_url,
+                str(output_path),
+                start_time,
+                end_time,
+                resolution=None,
+                bitrate_kbps=8000,
+                fps=None,
+                crf=crf,
+                preset=preset,
+                encoder=video_codec,
+                caption_filter=None,
+                include_audio=include_audio,
+                re_encode=force_reencode,
             )
 
-            if process.returncode != 0:
-                raise GDriveError(f"ffmpeg failed: {process.stderr[-500:]}")
+            if not output_path.exists():
+                raise GDriveError(
+                    "FFmpeg completed but the output file was not created."
+                )
 
-            # Step 7: Verify output
-            if output_path.exists():
-                result.success = True
-                result.output_path = str(output_path)
-                result.output_size_mb = output_path.stat().st_size / (1024 * 1024)
-            else:
-                raise GDriveError("Output file was not created")
+            wanted = end_time - start_time
 
-        except Exception as e:
-            result.error_message = str(e)
+            # A video output must always contain video.
+            # Audio is required only when include_audio=True.
+            kinds = (
+                ("video", "audio")
+                if include_audio
+                else ("video",)
+            )
+
+            problems = check_clip_length(
+                str(output_path),
+                wanted,
+                kinds=kinds,
+            )
+
+            if problems:
+                try:
+                    output_path.unlink()
+                except OSError:
+                    pass
+
+                # Normally core.trim_remote() already performs the
+                # stream-copy -> re-encode fallback. This is an additional
+                # safety net for an output that still fails duration
+                # validation at this adapter level.
+                if not force_reencode:
+                    trim_remote(
+                        self.ffmpeg,
+                        stream_url,
+                        str(output_path),
+                        start_time,
+                        end_time,
+                        resolution=None,
+                        bitrate_kbps=8000,
+                        fps=None,
+                        crf=crf,
+                        preset=preset,
+                        encoder=video_codec,
+                        caption_filter=None,
+                        include_audio=include_audio,
+                        re_encode=True,
+                    )
+
+                    problems = check_clip_length(
+                        str(output_path),
+                        wanted,
+                        kinds=kinds,
+                    )
+
+                if problems:
+                    try:
+                        output_path.unlink()
+                    except OSError:
+                        pass
+
+                    raise GDriveError(
+                        "The trimmed Google Drive clip is shorter than "
+                        f"requested ({wanted:.2f}s). "
+                        + "; ".join(problems)
+                    )
+
+            result.success = True
+            result.output_path = str(output_path)
+            result.trimmed_duration = wanted
+            result.output_size_mb = (
+                output_path.stat().st_size / (1024 * 1024)
+            )
+
+            # This reflects the requested processing mode.
+            # core.trim_remote() may transparently fall back to re-encoding
+            # if stream-copy is unsuitable.
+            result.used_stream_copy = not force_reencode
+
+        except Exception as exc:
+            result.error_message = plain_message(exc)
 
         return result
 
-    def download_full(self, 
-                      drive_url: str,
-                      output_filename: str | None = None,
-                      use_stream_copy: bool = True) -> TrimResult:
+    def download_full(
+        self,
+        drive_url: str,
+        output_filename: str | None = None,
+        use_stream_copy: bool = True,
+    ) -> TrimResult:
         """
-        Download a full Google Drive video without trimming.
-        Uses stream copy by default for maximum quality preservation.
+        Download a complete Google Drive video through its direct stream.
+
+        core.download_remote() owns the stream-copy/re-encode fallback.
         """
-        return self.trim(
-            drive_url=drive_url,
-            start_time=0,
-            end_time=999999,  # Will be clamped to actual duration
-            output_filename=output_filename,
-            mode='fast' if use_stream_copy else 'accurate'
-        )
+
+        result = TrimResult(success=False)
+
+        try:
+            stream_url = self._stream_url(drive_url)
+
+            if not output_filename:
+                output_filename = "gdrive_video.mp4"
+
+            output_path = self.output_dir / output_filename
+
+            download_remote(
+                self.ffmpeg,
+                stream_url,
+                str(output_path),
+                re_encode=not use_stream_copy,
+                crf=18,
+                preset="slow",
+                encoder=None,
+                include_audio=True,
+            )
+
+            if not output_path.exists():
+                raise GDriveError(
+                    "FFmpeg completed but the output file was not created."
+                )
+
+            result.success = True
+            result.output_path = str(output_path)
+            result.output_size_mb = (
+                output_path.stat().st_size / (1024 * 1024)
+            )
+
+            # This represents the requested mode. The shared core may have
+            # silently fallen back to re-encoding if stream-copy failed.
+            result.used_stream_copy = use_stream_copy
+
+        except Exception as exc:
+            result.error_message = plain_message(exc)
+
+        return result
 
 
-# Convenience functions
-def trim_drive_video(drive_url: str, start: float, end: float, **kwargs) -> TrimResult:
-    """Quick trim a Drive video"""
+def trim_drive_video(
+    drive_url: str,
+    start: float,
+    end: float,
+    **kwargs,
+) -> TrimResult:
+    """Convenience wrapper for trimming a Google Drive video."""
+
     trimmer = GDriveTrimmer()
-    return trimmer.trim(drive_url, start, end, **kwargs)
+
+    return trimmer.trim(
+        drive_url,
+        start,
+        end,
+        **kwargs,
+    )
 
 
-def download_drive_video(drive_url: str, **kwargs) -> TrimResult:
-    """Quick download a full Drive video"""
+def download_drive_video(
+    drive_url: str,
+    **kwargs,
+) -> TrimResult:
+    """Convenience wrapper for downloading a Google Drive video."""
+
     trimmer = GDriveTrimmer()
-    return trimmer.download_full(drive_url, **kwargs)
+
+    return trimmer.download_full(
+        drive_url,
+        **kwargs,
+    )

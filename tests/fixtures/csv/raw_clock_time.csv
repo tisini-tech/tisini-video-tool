@@ -1,0 +1,5 @@
+// Clock-style video times
+player,video time,event,sub event
+Ada,00:01:12,Goal,Header
+Brian,00:02:35,Save,Diving
+Ada,00:04:10,Shot,On Target

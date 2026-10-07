@@ -1,17 +1,39 @@
+
+"""Google Drive source parsing and direct-stream URL resolution.
+
+This module handles Google Drive shared video links.
+
+Responsibilities:
+
+    - Parse supported Google Drive URL formats.
+    - Extract Drive file IDs.
+    - Resolve confirmation tokens for large files when required.
+    - Build direct download/stream URLs.
+    - Verify that the resolved URL is accessible.
+    - Return lightweight metadata about the remote file.
+
+Actual media processing remains in the core processing module.
 """
-GDrive Parser Module for Video Tool
-Handles Google Drive shared video links
-"""
+
+from __future__ import annotations
+
 import re
 import urllib.parse
 from dataclasses import dataclass
 
 import requests
 
+from ..errors import VideoToolError
+
+# ---------------------------------------------------------------------------
+# Data models
+# ---------------------------------------------------------------------------
+
 
 @dataclass
 class GDriveVideoInfo:
-    """Parsed Google Drive video metadata"""
+    """Parsed Google Drive video metadata."""
+
     file_id: str
     title: str | None = None
     mime_type: str | None = None
@@ -24,221 +46,419 @@ class GDriveVideoInfo:
     confirm_token: str | None = None
 
 
-class GDriveError(Exception):
-    """Google Drive parsing/download error"""
-    pass
+class GDriveError(VideoToolError):
+    """Google Drive parsing or access error.
+
+    Messages are written for people who are not technical.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Google Drive URL parser
+# ---------------------------------------------------------------------------
 
 
 class GDriveURLParser:
-    """Parse Google Drive share URLs and extract direct download links"""
+    """Parse Google Drive URLs and resolve direct stream URLs."""
 
-    # Regex patterns for various Drive URL formats
-    PATTERNS = [
-        r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)',           # /file/d/FILE_ID/view
-        r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)',       # /open?id=FILE_ID
-        r'googledrive\.com/host/([a-zA-Z0-9_-]+)',               # deprecated hosting
-        r'drive\.google\.com/uc\?.*?id=([a-zA-Z0-9_-]+)',      # /uc?id=FILE_ID
-    ]
+    # Supported Google Drive URL formats.
+    PATTERNS = (
+        re.compile(
+            r"drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"drive\.google\.com/open\?id=([A-Za-z0-9_-]+)",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"googledrive\.com/host/([A-Za-z0-9_-]+)",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"drive\.google\.com/uc\?(?:[^#]*&)?id=([A-Za-z0-9_-]+)",
+            re.IGNORECASE,
+        ),
+    )
 
-    # Direct download base URL
+    # Direct download endpoint.
     DOWNLOAD_BASE = "https://drive.google.com/uc"
+
+    # Filename from Content-Disposition.
+    _FILENAME_RE = re.compile(
+        r"""filename\*?=(?:UTF-8''|["']?)([^"';\r\n]+)""",
+        re.IGNORECASE,
+    )
+
+    # Common confirmation-token patterns returned by Google Drive.
+    _CONFIRM_PATTERNS = (
+        re.compile(
+            r"""<input[^>]*name=["']confirm["'][^>]*value=["']([A-Za-z0-9_-]+)["']""",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"""<input[^>]*value=["']([A-Za-z0-9_-]+)["'][^>]*name=["']confirm["']""",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"""name=["']confirm["']\s+value=["']([A-Za-z0-9_-]+)["']""",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"""confirm=([A-Za-z0-9_-]+)""",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"""download_warning_[0-9a-f]+=([0-9a-f]+)""",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"""action="[^"]*confirm=([A-Za-z0-9_-]+)[^"]*""" ,
+            re.IGNORECASE,
+        ),
+    )
 
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
         self.session = requests.Session()
-        # Mimic a real browser to avoid blocks
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-        })
+
+        # Browser-like headers help avoid unnecessary Drive blocking.
+        self.session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": (
+                    "text/html,application/xhtml+xml,"
+                    "application/xml;q=0.9,image/webp,*/*;q=0.8"
+                ),
+                "Accept-Language": "en-US,en;q=0.5",
+            }
+        )
+
+    # ------------------------------------------------------------------
+    # URL parsing
+    # ------------------------------------------------------------------
 
     def extract_file_id(self, url: str) -> str | None:
-        """Extract the file ID from any Google Drive URL format"""
+        """Extract the Drive file ID from a supported URL."""
+
         for pattern in self.PATTERNS:
-            match = re.search(pattern, url)
+            match = pattern.search(url)
+
             if match:
                 return match.group(1)
+
         return None
 
     def is_valid_drive_url(self, url: str) -> bool:
-        """Check if URL is a valid Google Drive share link"""
+        """Return True when ``url`` contains a supported Drive file ID."""
+
         return self.extract_file_id(url) is not None
 
-    def _build_direct_url(self, file_id: str, confirm_token: str | None = None) -> str:
-        """Build the direct download URL"""
-        params = {'export': 'download', 'id': file_id}
-        if confirm_token:
-            params['confirm'] = confirm_token
-        return f"{self.DOWNLOAD_BASE}?{urllib.parse.urlencode(params)}"
+    # ------------------------------------------------------------------
+    # Direct URL construction
+    # ------------------------------------------------------------------
 
-    def _fetch_confirm_token(self, file_id: str) -> tuple[str | None, dict]:
+    def _build_direct_url(
+        self,
+        file_id: str,
+        confirm_token: str | None = None,
+    ) -> str:
+        """Build a Google Drive direct download URL."""
+
+        params = {
+            "export": "download",
+            "id": file_id,
+        }
+
+        if confirm_token:
+            params["confirm"] = confirm_token
+
+        query = urllib.parse.urlencode(params)
+
+        return f"{self.DOWNLOAD_BASE}?{query}"
+
+    # ------------------------------------------------------------------
+    # Confirmation handling
+    # ------------------------------------------------------------------
+
+    def _fetch_confirm_token(
+        self,
+        file_id: str,
+    ) -> tuple[str | None, dict[str, str]]:
+        """Fetch a confirmation token when Drive requires one.
+
+        Google Drive may show a confirmation page for large or
+        unscannable files.
+
+        Returns:
+            ``(token, response_headers)``.
         """
-        Fetch the confirmation token for large files.
-        Google Drive shows a virus scan warning for files > 100MB or un-scannable files.
-        Returns (token, response_headers)
-        """
+
         url = self._build_direct_url(file_id)
-        
+
         try:
-            # First request - get the warning page or file
-            resp = self.session.get(url, timeout=self.timeout, allow_redirects=True)
-            headers = dict(resp.headers)
-            content_type = headers.get('Content-Type', '')
-            
-            # If we got video data directly, no confirmation needed
-            if 'video' in content_type or 'octet-stream' in content_type:
+            response = self.session.get(
+                url,
+                timeout=self.timeout,
+                allow_redirects=True,
+            )
+
+            headers = dict(response.headers)
+            content_type = headers.get("Content-Type", "").lower()
+
+            # A direct media response means no confirmation is required.
+            if "video" in content_type or "octet-stream" in content_type:
                 return None, headers
-            
-            # If it's not HTML, something else is wrong
-            if 'text/html' not in content_type:
+
+            # Anything other than HTML cannot be interpreted as a
+            # confirmation page.
+            if "text/html" not in content_type:
                 return None, headers
-            
-            # Read the full HTML
-            html = resp.text
-            
-            # === Method 1: Check for warning cookies (most reliable for large files) ===
-            for cookie_name, cookie_value in resp.cookies.items():
-                if 'download_warning' in cookie_name:
+
+            html = response.text
+
+            # ----------------------------------------------------------
+            # Method 1: confirmation cookie
+            # ----------------------------------------------------------
+
+            for cookie_name, cookie_value in response.cookies.items():
+                if "download_warning" in cookie_name:
                     return cookie_value, headers
-            
-            # === Method 2: Extract confirm token from form/input in HTML ===
-            # Pattern: <input type="hidden" name="confirm" value="TOKEN">
-            patterns = [
-                r'<input[^>]*name=["\']confirm["\'][^>]*value=["\']([a-zA-Z0-9_-]+)["\']',
-                r'<input[^>]*value=["\']([a-zA-Z0-9_-]+)["\'][^>]*name=["\']confirm["\']',
-                r'name=["\']confirm["\']\s+value=["\']([a-zA-Z0-9_-]+)["\']',
-                r'confirm=([a-zA-Z0-9_-]+)',  # in URLs
-                r'download_warning_[0-9a-f]+=([0-9a-f]+)',  # cookie format in HTML
-                r'action="[^"]*confirm=([a-zA-Z0-9_-]+)[^"]*"',  # form action URL
-            ]
-            for pattern in patterns:
-                match = re.search(pattern, html)
+
+            # ----------------------------------------------------------
+            # Method 2: hidden form/input fields and URLs
+            # ----------------------------------------------------------
+
+            for pattern in self._CONFIRM_PATTERNS:
+                match = pattern.search(html)
+
                 if match:
                     return match.group(1), headers
-            
-            # === Method 3: Look for "download" link in the warning page ===
-            # Google sometimes embeds the token in a download button href
+
+            # ----------------------------------------------------------
+            # Method 3: download link containing the token
+            # ----------------------------------------------------------
+
             href_match = re.search(
-                r'href="(/uc\?[^"]*confirm=([a-zA-Z0-9_-]+)[^"]*)"',
-                html
+                r"""href="(/uc\?[^"]*confirm=([A-Za-z0-9_-]+)[^"]*)""" ,
+                html,
+                re.IGNORECASE,
             )
+
             if href_match:
                 return href_match.group(2), headers
-            
-            # === Method 4: Look for the form action with uc endpoint ===
+
+            # ----------------------------------------------------------
+            # Method 4: form action containing confirmation data
+            # ----------------------------------------------------------
+
             form_match = re.search(
-                r'<form[^>]*action="(/uc[^"]*)"[^>]*>(.*?)</form>',
+                r"""<form[^>]*action="(/uc[^"]*)"[^>]*>(.*?)</form>""",
                 html,
-                re.DOTALL
+                re.IGNORECASE | re.DOTALL,
             )
+
             if form_match:
                 form_html = form_match.group(2)
+
                 input_match = re.search(
-                    r'<input[^>]*name=["\']confirm["\'][^>]*value=["\']([^"\']+)["\']',
-                    form_html
+                    r"""<input[^>]*name=["']confirm["'][^>]*value=["']([^"']+)["']""",
+                    form_html,
+                    re.IGNORECASE,
                 )
+
                 if input_match:
                     return input_match.group(1), headers
-            
+
             return None, headers
-            
-        except Exception as e:
-            raise GDriveError(f"Failed to fetch confirmation token: {e}")
+
+        except requests.RequestException as exc:
+            raise GDriveError(
+                "Google Drive did not let Video Tool start the "
+                "download. Try again in a while.",
+                detail=str(exc),
+            ) from exc
+
+    # ------------------------------------------------------------------
+    # Metadata / stream resolution
+    # ------------------------------------------------------------------
 
     def get_video_info(self, url: str) -> GDriveVideoInfo:
+        """Resolve a Drive URL into a usable direct stream URL.
+
+        Handles both ordinary files and files requiring a confirmation
+        token before download.
         """
-        Get video metadata and direct download URL from a Drive share link.
-        Handles both small files (direct download) and large files (confirmation).
-        """
+
         file_id = self.extract_file_id(url)
+
         if not file_id:
-            raise GDriveError(f"Could not extract file ID from URL: {url}")
-        
+            raise GDriveError(
+                f"This does not look like a Google Drive video link: {url}"
+            )
+
         info = GDriveVideoInfo(file_id=file_id)
-        
-        # Step 1: Get confirmation token if needed
-        confirm_token, headers = self._fetch_confirm_token(file_id)
+
+        # Step 1: determine whether Drive requires a confirmation token.
+        confirm_token, _headers = self._fetch_confirm_token(file_id)
+
         info.confirm_token = confirm_token
-        
-        # Step 2: Build the direct URL
-        info.direct_url = self._build_direct_url(file_id, confirm_token)
-        
-        # Step 3: Verify the direct URL actually works
+
+        # Step 2: build the direct URL.
+        info.direct_url = self._build_direct_url(
+            file_id,
+            confirm_token,
+        )
+
+        # Step 3: verify that the URL actually resolves to media.
+        probe_response = None
+
         try:
-            # Use GET with stream=True for the actual check (HEAD sometimes fails)
-            probe_resp = self.session.get(
+            probe_response = self.session.get(
                 info.direct_url,
                 stream=True,
                 timeout=self.timeout,
-                allow_redirects=True
+                allow_redirects=True,
             )
-            probe_ct = probe_resp.headers.get('Content-Type', '')
-            
-            # If GET returns HTML, the confirm token didn't work
-            if 'text/html' in probe_ct:
-                # Read a bit to check for error messages
-                chunk = next(probe_resp.iter_content(4096), b'').decode('utf-8', errors='ignore')
-                lower_chunk = chunk.lower()
-                
-                if 'quota' in lower_chunk or 'too many users' in lower_chunk:
-                    raise GDriveError("Google Drive quota exceeded. Too many downloads recently.")
-                if 'virus' in lower_chunk:
-                    raise GDriveError("Virus scan warning could not be bypassed. Token may be invalid.")
-                if 'sign in' in lower_chunk or 'login' in lower_chunk:
-                    raise GDriveError("File requires login. Not publicly shared.")
-                
-                raise GDriveError(
-                    "Direct URL returns HTML instead of video. "
-                    "File may not be publicly accessible or requires confirmation."
+
+            content_type = probe_response.headers.get(
+                "Content-Type",
+                "",
+            )
+
+            content_type_lower = content_type.lower()
+
+            # HTML usually means that the file is inaccessible,
+            # confirmation failed, or Google returned an error page.
+            if "text/html" in content_type_lower:
+                chunk = next(
+                    probe_response.iter_content(4096),
+                    b"",
                 )
-            
-            info.mime_type = probe_ct
-            content_length = probe_resp.headers.get('Content-Length')
+
+                lower_chunk = chunk.decode(
+                    "utf-8",
+                    errors="ignore",
+                ).lower()
+
+                if "quota" in lower_chunk or "too many users" in lower_chunk:
+                    raise GDriveError(
+                        "Google Drive has paused downloads of this file "
+                        "because too many people downloaded it. "
+                        "Try again tomorrow."
+                    )
+
+                if "virus" in lower_chunk:
+                    raise GDriveError(
+                        "Google Drive showed a safety warning that Video "
+                        "Tool could not get past. Try again later."
+                    )
+
+                if (
+                    "sign in" in lower_chunk
+                    or "login" in lower_chunk
+                ):
+                    raise GDriveError(
+                        "This Google Drive file is not shared with "
+                        "everyone who has the link. Ask the owner to "
+                        "change the sharing setting."
+                    )
+
+                raise GDriveError(
+                    "Google Drive sent a web page instead of the video. "
+                    "The file may not be shared with everyone who has "
+                    "the link."
+                )
+
+            info.mime_type = content_type
+
+            content_length = probe_response.headers.get(
+                "Content-Length"
+            )
+
             if content_length:
-                info.size_bytes = int(content_length)
-            
-            # Check if it's actually a video
-            if 'video' in probe_ct or 'octet-stream' in probe_ct:
+                try:
+                    info.size_bytes = int(content_length)
+                except ValueError:
+                    info.size_bytes = None
+
+            # A video or generic binary response is usable by the
+            # downstream media-processing pipeline.
+            if (
+                "video" in content_type_lower
+                or "octet-stream" in content_type_lower
+            ):
                 info.is_streamable = True
-            
-            # Try to get filename from Content-Disposition
-            cd = probe_resp.headers.get('Content-Disposition', '')
-            filename_match = re.search(r'filename\*?=[\'"]?([^\'";]+)', cd)
+
+            # Try to recover the original filename.
+            content_disposition = probe_response.headers.get(
+                "Content-Disposition",
+                "",
+            )
+
+            filename_match = self._FILENAME_RE.search(
+                content_disposition
+            )
+
             if filename_match:
-                info.title = urllib.parse.unquote(filename_match.group(1))
-            
-            # Close the stream since we only wanted to check headers
-            probe_resp.close()
-            
+                info.title = urllib.parse.unquote(
+                    filename_match.group(1)
+                )
+
         except GDriveError:
             raise
-        except Exception:
-            # Non-fatal: we still have the direct URL, but mark as not streamable
+
+        except requests.RequestException:
+            # The direct URL has still been constructed. Treat a failed
+            # verification as non-fatal so callers can decide whether
+            # to attempt the stream themselves.
             info.is_streamable = False
-        
+
+        finally:
+            if probe_response is not None:
+                probe_response.close()
+
         return info
 
     def get_stream_url(self, url: str) -> str:
-        """Get a streamable URL (for ffmpeg/players)"""
+        """Return a resolved Google Drive URL suitable for media tools."""
+
         info = self.get_video_info(url)
-        if not info.is_streamable and not info.direct_url:
-            raise GDriveError("File is not streamable or accessible")
+
+        if not info.direct_url:
+            raise GDriveError(
+                "Google Drive will not let Video Tool open this file. "
+                "Check that it is shared with everyone who has the link."
+            )
+
         return info.direct_url
 
 
-# Convenience function
+# ---------------------------------------------------------------------------
+# Convenience functions
+# ---------------------------------------------------------------------------
+
+
 def is_drive_url(url: str) -> bool:
-    """Check if a URL is a Google Drive link"""
+    """Return True when ``url`` is a supported Google Drive URL."""
+
     return GDriveURLParser().is_valid_drive_url(url)
 
 
 def parse_drive_url(url: str) -> GDriveVideoInfo:
-    """Quick parse a Drive URL"""
+    """Parse a Drive URL and return its resolved video information."""
+
     parser = GDriveURLParser()
+
     return parser.get_video_info(url)
 
 
 def get_drive_stream_url(url: str) -> str:
-    """Get streamable URL from Drive link"""
+    """Return a resolved stream URL from a Google Drive link."""
+
     return GDriveURLParser().get_stream_url(url)

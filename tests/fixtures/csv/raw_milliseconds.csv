@@ -1,0 +1,5 @@
+// Video Time values are milliseconds
+player,video time,event,sub event
+Ada,12000,Goal,Header
+Brian,35000,Save,Diving
+Ada,60000,Shot,On Target

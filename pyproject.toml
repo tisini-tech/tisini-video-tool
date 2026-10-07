@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "video-tool"
-version = "3.0.0"
+version = "1.0.0"
 description = "YouTube downloader and video compilation toolkit"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -31,10 +31,8 @@ dev = [
 vt = "video_tool.versions.video_tool_basic:main"
 vt-basic = "video_tool.versions.video_tool_basic:main"
 vt-pro = "video_tool.versions.video_tool_pro:main"
-vt-unified = "video_tool.versions.video_tool_unified:main"
 vt-auto-compiler = "video_tool.versions.auto_compiler:main"
 vt-merge = "video_tool.versions.merge_tool:main"
-vt-ai-finder = "video_tool.versions.ai_finder:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

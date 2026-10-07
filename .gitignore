@@ -1,21 +1,45 @@
+# Python environments
 .venv/
+
+# Python cache / bytecode
 __pycache__/
 *.py[cod]
+
+# Python packaging
 *.egg-info/
+build/
+dist/
+*.whl
+
+# Test / lint / coverage caches
 .pytest_cache/
 .ruff_cache/
 .coverage
+
+# Environment and secrets
 .env
 .env.*
+
+# YouTube authentication
 youtube_cookies.txt
+
+# Logs
 *.log
-*.txt.log
+
+# Temporary files
 .temp/
+
+# Generated download directories
 downloads/
+
+# Generated media
 *.mp4
 *.mp3
 *.mkv
 *.webm
-video_tool_*_downloads.json
-video_tool_*_cache.json
-video_tool_*_log.txt
+
+# Keep committed media fixtures
+!tests/fixtures/media/*.mp4
+!tests/fixtures/media/*.mp3
+!tests/fixtures/media/*.mkv
+!tests/fixtures/media/*.webm

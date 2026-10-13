@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -79,6 +80,9 @@ class DownloadOptions:
     progress_hook: ProgressHook | None = None
     remote_components: list[str] | None = None
     ffmpeg_location: str | None = None
+    js_runtime_path: str | None = None
+    # Runtime-managed standalone executable used by the GUI.
+    yt_dlp_executable: str | None = None
     js_runtime_path: str | None = None
 
     # Range download. Leave both as None to fetch the whole video.
@@ -220,7 +224,9 @@ def _cookie_file(options: DownloadOptions) -> str | None:
 
     cookie_file = options.cookie_file
 
-    if not cookie_file:
+    # An explicitly selected browser should be used instead of silently
+    # preferring a project-local cookie file. Explicit cookie_file still wins.
+    if not cookie_file and not options.cookie_browser:
         candidate = project_path("youtube_cookies.txt")
 
         if os.path.isfile(candidate):
@@ -355,11 +361,20 @@ def build_ydl_options(
         }
     ydl_options["remote_components"] = ["ejs:npm"]
 
+    # Use the app-managed Deno executable when provided.
+    if options.js_runtime_path:
+        ydl_options["js_runtimes"] = {
+            "deno": {
+                "path": options.js_runtime_path,
+            }
+        }
+    ydl_options["remote_components"] = ["ejs:npm"]
+
     _apply_auth_options(
         ydl_options,
         options,
     )
-   
+
     if options.format_type.upper() == "MP3":
         ydl_options["format"] = "bestaudio/best"
         ydl_options["postprocessors"] = [
@@ -511,6 +526,119 @@ def _final_path(
     return ydl.prepare_filename(info)
 
 
+def _download_url_with_executable(
+    url: str,
+    options: DownloadOptions,
+) -> str:
+    """Run the GUI-managed standalone yt-dlp for full-video downloads.
+
+    This lets the GUI use its runtime-updated yt-dlp executable rather than
+    only updating a standalone binary while downloads use the bundled module.
+    """
+    executable = Path(options.yt_dlp_executable or "").expanduser()
+    if not executable.is_file():
+        raise MissingToolError(
+            f"The configured yt-dlp executable was not found: {executable}"
+        )
+
+    output_dir = Path(options.output_dir).expanduser()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_template = str(output_dir / "%(title)s.%(ext)s")
+
+    args = [
+        str(executable),
+        "--no-playlist",
+        "--retries", "10",
+        "--fragment-retries", "10",
+        "--output", output_template,
+        "--print", "after_move:filepath",
+        "--no-progress",
+    ]
+
+    cookie_file = _cookie_file(options)
+    if cookie_file:
+        args.extend(["--cookies", cookie_file])
+    elif options.cookie_browser and options.cookie_browser.lower() != "none":
+        args.extend(["--cookies-from-browser", options.cookie_browser.lower()])
+
+    # The standalone official yt-dlp executable bundles EJS solver scripts;
+    # allow remote npm EJS components as an automatically refreshed fallback.
+    components = options.remote_components or ["ejs:npm"]
+    for component in components:
+        args.extend(["--remote-components", component])
+
+    if options.ffmpeg_location:
+        args.extend(["--ffmpeg-location", options.ffmpeg_location])
+    if options.js_runtime_path:
+        args.extend([
+            "--js-runtimes",
+            f"deno:{Path(options.js_runtime_path).expanduser()}",
+        ])
+
+    if options.format_type.upper() == "MP3":
+        args.extend([
+            "--format", "bestaudio/best",
+            "--extract-audio",
+            "--audio-format", "mp3",
+            "--audio-quality", "192K",
+        ])
+    elif options.quality == "Best":
+        args.extend([
+            "--format", "bv*+ba/best",
+            "--merge-output-format", "mp4",
+        ])
+    else:
+        height_filter = quality_filter(options.quality)
+        args.extend([
+            "--format",
+            f"bestvideo{height_filter}+bestaudio/best{height_filter}",
+            "--merge-output-format", "mp4",
+        ])
+
+    args.append(url)
+    try:
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+    except OSError as exc:
+        raise MissingToolError(
+            f"Could not start yt-dlp at {executable}: {exc}"
+        ) from exc
+
+    if result.returncode != 0:
+        details = (
+            result.stderr or result.stdout or "No error details were returned."
+        ).strip()
+        if len(details) > 6000:
+            details = details[-6000:]
+        raise VideoToolError(
+            f"yt-dlp could not download this video.\n{details}"
+        )
+
+    # --print after_move:filepath reports the final post-processed file path.
+    for line in reversed(result.stdout.splitlines()):
+        candidate_text = line.strip()
+        if not candidate_text:
+            continue
+        candidate = Path(candidate_text).expanduser()
+        if candidate.is_file():
+            return str(candidate.resolve())
+
+    fallback = find_downloaded_file(str(output_dir), options.format_type)
+    if fallback and Path(fallback).is_file():
+        return str(Path(fallback).resolve())
+
+    raise VideoToolError(
+        "yt-dlp finished without reporting a saved media file. "
+        "Check the output folder and try again."
+    )
+
+
 def download_url(
     url: str,
     options: DownloadOptions,
@@ -527,6 +655,11 @@ def download_url(
     """
 
     url = _normalise_url(url)
+
+    # Use the runtime-updated executable for GUI full downloads. Range-download
+    # and other callers retain the established Python yt-dlp API pipeline.
+    if download and options.yt_dlp_executable and not has_section(options):
+        return _download_url_with_executable(url, options)
 
     ydl_options = build_ydl_options(options)
 

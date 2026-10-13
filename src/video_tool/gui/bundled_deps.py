@@ -1,4 +1,3 @@
-
 """Manage private runtime dependencies for the Video Tool GUI."""
 
 from __future__ import annotations
@@ -6,10 +5,12 @@ from __future__ import annotations
 import json
 import logging
 import platform
+import re
 import shutil
 import stat
 import subprocess
 import tarfile
+import time
 import zipfile
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -24,6 +25,7 @@ ProgressCallback = Callable[[str], None] | None
 BUNDLE_DIR = Path.home() / ".video-tool-gui" / "bin"
 STATE_PATH = Path.home() / ".video-tool-gui" / "check_state.json"
 VERSION_CHECK_INTERVAL_HOURS = 24
+FFMPEG_CHECK_INTERVAL_HOURS = 168  # Large rolling archive: check weekly.
 
 YTDLP_RELEASE_BASE = (
     "https://github.com/yt-dlp/yt-dlp/releases/latest/download"
@@ -102,16 +104,18 @@ def _save_state(state: dict) -> None:
     temporary.replace(STATE_PATH)
 
 
-def _due_for_check(state: dict, key: str) -> bool:
+def _due_for_check(
+    state: dict,
+    key: str,
+    interval_hours: int = VERSION_CHECK_INTERVAL_HOURS,
+) -> bool:
     last = state.get(key)
     if not last:
         return True
 
     try:
         checked_at = datetime.fromisoformat(last)
-        return datetime.now() - checked_at >= timedelta(
-            hours=VERSION_CHECK_INTERVAL_HOURS
-        )
+        return datetime.now() - checked_at >= timedelta(hours=interval_hours)
     except (TypeError, ValueError):
         return True
 
@@ -125,39 +129,97 @@ def _stamp_check(key: str) -> None:
         logger.warning("Could not save dependency check state", exc_info=True)
 
 
-
 def _download(
     url: str,
     destination: Path,
     progress_callback: ProgressCallback = None,
 ) -> bool:
-    """Download to a temporary file, retrying failures without replacing the destination."""
-    temporary = destination.with_name(destination.name + ".download")
-    max_attempts = 3
+    """Download a file and resume partial transfers when HTTP ranges work.
 
+    A partial file is kept after a failed attempt and between application
+    launches. If a server ignores the Range header and returns HTTP 200, the
+    partial file is overwritten instead of appending duplicate bytes.
+    """
+    temporary = destination.with_name(destination.name + ".download")
+    max_attempts = 8
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     for attempt in range(1, max_attempts + 1):
-        try:
-            temporary.unlink(missing_ok=True)
+        existing_size = temporary.stat().st_size if temporary.exists() else 0
+        headers = {
+            "User-Agent": "Video-Tool-GUI",
+            "Accept-Encoding": "identity",
+        }
+        if existing_size:
+            headers["Range"] = f"bytes={existing_size}-"
+            _report(
+                progress_callback,
+                f"Resuming {destination.name} from "
+                f"{existing_size / (1024 * 1024):.1f} MiB...",
+            )
 
+        try:
+            expected_total: int | None = None
             with requests.get(
                 url,
                 stream=True,
                 timeout=(30, 600),
-                headers={"User-Agent": "Video-Tool-GUI"},
+                headers=headers,
             ) as response:
-                response.raise_for_status()
+                # A 416 usually means the saved partial no longer matches the
+                # asset. Remove it and retry from the beginning.
+                if response.status_code == 416 and existing_size:
+                    temporary.unlink(missing_ok=True)
+                    raise RuntimeError(
+                        "The server rejected the resume offset; restarting "
+                        "the download"
+                    )
 
-                with temporary.open("wb") as output:
-                    for chunk in response.iter_content(
-                        chunk_size=1024 * 256
-                    ):
+                if response.status_code == 206:
+                    content_range = response.headers.get("Content-Range", "")
+                    match = re.match(
+                        r"^bytes\s+(\d+)-(\d+)/(\d+|\*)$",
+                        content_range.strip(),
+                        flags=re.IGNORECASE,
+                    )
+                    if not match or int(match.group(1)) != existing_size:
+                        # Never append bytes unless the server confirms the
+                        # exact offset. Start cleanly on the next attempt.
+                        temporary.unlink(missing_ok=True)
+                        raise RuntimeError(
+                            "The server returned an invalid Content-Range header"
+                        )
+
+                    mode = "ab" if existing_size else "wb"
+                    total_text = match.group(3)
+                    if total_text != "*":
+                        expected_total = int(total_text)
+                    else:
+                        response_length = response.headers.get("Content-Length")
+                        if response_length and response_length.isdigit():
+                            expected_total = existing_size + int(response_length)
+                else:
+                    response.raise_for_status()
+                    # Servers that ignore Range respond with 200: restart the
+                    # temporary file rather than duplicating its contents.
+                    mode = "wb"
+                    response_length = response.headers.get("Content-Length")
+                    if response_length and response_length.isdigit():
+                        expected_total = int(response_length)
+
+                with temporary.open(mode) as output:
+                    for chunk in response.iter_content(chunk_size=1024 * 256):
                         if chunk:
                             output.write(chunk)
 
-            if not temporary.exists() or temporary.stat().st_size == 0:
+            actual_size = temporary.stat().st_size if temporary.exists() else 0
+            if actual_size == 0:
                 raise RuntimeError("The downloaded file is empty")
+            if expected_total is not None and actual_size != expected_total:
+                raise RuntimeError(
+                    f"Incomplete download: received {actual_size} of "
+                    f"{expected_total} bytes"
+                )
 
             temporary.replace(destination)
             return True
@@ -170,14 +232,21 @@ def _download(
                 url,
                 exc_info=True,
             )
-            temporary.unlink(missing_ok=True)
-
+            # Keep the partial .download file so the next attempt can resume.
             if attempt < max_attempts:
+                delay = min(2 ** (attempt - 1), 30)
                 _report(
                     progress_callback,
-                    f"Download failed; retrying ({attempt + 1}/{max_attempts})...",
+                    "Download interrupted; preserving received data and "
+                    f"retrying in {delay}s ({attempt + 1}/{max_attempts})...",
                 )
+                time.sleep(delay)
 
+    _report(
+        progress_callback,
+        f"Could not finish downloading {destination.name}. The partial file "
+        "has been kept so a later attempt can resume it.",
+    )
     return False
 
 
@@ -212,7 +281,6 @@ def _install_binary(
 
     try:
         _make_executable(staged)
-
         if not _works(staged, check_argument):
             raise RuntimeError("Downloaded executable failed its version check")
 
@@ -252,7 +320,7 @@ def _update_binary(
     if not _due_for_check(state, check_key):
         return target
 
-    # yt-dlp has a release API; Deno and FFmpeg use rolling latest links.
+    # yt-dlp has a release API; Deno uses a rolling latest link.
     if tool == "yt-dlp":
         try:
             response = requests.get(
@@ -284,7 +352,6 @@ def _update_binary(
             logger.warning("Could not check yt-dlp version", exc_info=True)
             _stamp_check(check_key)
             return target
-
     else:
         _report(progress, f"Refreshing {tool}...")
 
@@ -301,7 +368,10 @@ def ensure_ytdlp(progress_callback: ProgressCallback = None) -> Path | None:
     """Ensure the standalone yt-dlp executable exists and is current."""
     asset = YTDLP_ASSETS.get(SYSTEM)
     if not asset:
-        _report(progress_callback, f"Automatic yt-dlp setup is unsupported on {SYSTEM}.")
+        _report(
+            progress_callback,
+            f"Automatic yt-dlp setup is unsupported on {SYSTEM}.",
+        )
         return None
 
     return _update_binary(
@@ -310,7 +380,6 @@ def ensure_ytdlp(progress_callback: ProgressCallback = None) -> Path | None:
         "ytdlp_checked_at",
         progress_callback,
     )
-
 
 
 def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
@@ -335,14 +404,19 @@ def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
 
     _report(
         progress_callback,
-        "Downloading Deno..." if not target.exists() else "Checking for a Deno update...",
+        "Downloading Deno..."
+        if not target.exists()
+        else "Checking for a Deno update...",
     )
 
     archive = BUNDLE_DIR / asset
     url = f"{DENO_RELEASE_BASE}/{asset}"
 
-    if not _download(url, archive):
-        _report(progress_callback, "Could not download Deno; keeping the existing copy if available.")
+    if not _download(url, archive, progress_callback):
+        _report(
+            progress_callback,
+            "Could not download Deno; keeping the existing copy if available.",
+        )
         return target if target.exists() and _works(target) else None
 
     try:
@@ -351,12 +425,14 @@ def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
             _report(progress_callback, "Deno ready.")
             return target
 
-        _report(progress_callback, "Deno update failed; keeping the existing copy if available.")
+        _report(
+            progress_callback,
+            "Deno update failed; keeping the existing copy if available.",
+        )
         return target if target.exists() and _works(target) else None
 
     finally:
         archive.unlink(missing_ok=True)
-
 
 
 def _extract_archive_binary(
@@ -377,7 +453,8 @@ def _extract_archive_binary(
             with zipfile.ZipFile(archive) as zf:
                 member = next(
                     (
-                        item for item in zf.infolist()
+                        item
+                        for item in zf.infolist()
                         if Path(item.filename).name == binary_name
                     ),
                     None,
@@ -386,12 +463,12 @@ def _extract_archive_binary(
                     raise RuntimeError(f"Archive has no {binary_name}")
                 with zf.open(member) as source, staged.open("wb") as output:
                     shutil.copyfileobj(source, output)
-
         else:
             with tarfile.open(archive, "r:*") as tf:
                 member = next(
                     (
-                        item for item in tf.getmembers()
+                        item
+                        for item in tf.getmembers()
                         if item.isfile() and Path(item.name).name == binary_name
                     ),
                     None,
@@ -405,7 +482,6 @@ def _extract_archive_binary(
                     shutil.copyfileobj(source, output)
 
         _make_executable(staged)
-
         if not _works(staged):
             raise RuntimeError(f"Extracted {binary_name} failed its version check")
 
@@ -420,7 +496,6 @@ def _extract_archive_binary(
 
     finally:
         shutil.rmtree(extract_dir, ignore_errors=True)
-
 
 
 def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
@@ -456,7 +531,11 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
     BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
     target = BUNDLE_DIR / _binary_name("ffmpeg")
     state = _load_state()
-    due = _due_for_check(state, "ffmpeg_checked_at")
+    due = _due_for_check(
+        state,
+        "ffmpeg_checked_at",
+        interval_hours=FFMPEG_CHECK_INTERVAL_HOURS,
+    )
 
     if target.exists() and not _works(target):
         target.unlink(missing_ok=True)
@@ -475,7 +554,7 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
     url = f"{FFMPEG_RELEASE_BASE}/{asset}"
 
     if not _download(url, archive, progress_callback):
-        archive.unlink(missing_ok=True)
+        # Keep the .download partial file so the next run can resume it.
         _report(
             progress_callback,
             "Could not download FFmpeg; keeping the existing copy if available.",
@@ -500,7 +579,6 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
 
     finally:
         archive.unlink(missing_ok=True)
-
 
 
 def ensure_all(progress_callback: ProgressCallback = None) -> dict:

@@ -84,7 +84,8 @@ class VideoToolGUI(ctk.CTk):
         self._closing = False
 
         self._download_count = load_download_count()
-        self._ffmpeg_path: str | None = None 
+        self._ffmpeg_path: str | None = None
+        self._ytdlp_path: str | None = None 
         self._deno_path: str | None = None
 
         self._build_ui()
@@ -363,6 +364,56 @@ class VideoToolGUI(ctk.CTk):
             fill="x"
         )
 
+        # Optional YouTube browser authentication. Cookies stay on the user's
+        # device; they are read from the selected browser when a download runs.
+        cookie_frame = ctk.CTkFrame(
+            options_row,
+            fg_color="transparent",
+        )
+        cookie_frame.pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(8, 0),
+        )
+
+        cookie_label = ctk.CTkLabel(
+            cookie_frame,
+            text="Browser cookies",
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=14,
+            ),
+        )
+        cookie_label.pack(
+            anchor="w",
+            pady=(0, 6),
+        )
+
+        self.cookie_browser_var = ctk.StringVar(value="None")
+        self.cookie_browser_menu = ctk.CTkOptionMenu(
+            cookie_frame,
+            variable=self.cookie_browser_var,
+            values=[
+                "None",
+                "Firefox",
+                "Chrome",
+                "Chromium",
+                "Edge",
+                "Brave",
+                "Opera",
+                "Vivaldi",
+                "Safari",
+            ],
+            height=40,
+            corner_radius=9,
+            font=ctk.CTkFont(
+                family="Segoe UI",
+                size=14,
+            ),
+        )
+        self.cookie_browser_menu.pack(fill="x")
+
         # --------------------------------------------------------------
         # Output card
         # --------------------------------------------------------------
@@ -611,6 +662,9 @@ class VideoToolGUI(ctk.CTk):
         if isinstance(result, dict) and result.get("ffmpeg"):
             self._ffmpeg_path = str(result["ffmpeg"])
 
+        if isinstance(result, dict) and result.get("ytdlp"):
+            self._ytdlp_path = str(result["ytdlp"])
+
         if isinstance(result, dict) and result.get("deno"):
             self._deno_path = str(result["deno"])
 
@@ -804,10 +858,17 @@ class VideoToolGUI(ctk.CTk):
             self.notify.report(explain(exc))
             return
 
+        browser_choice = self.cookie_browser_var.get()
+        cookie_browser = (
+            None if browser_choice == "None" else browser_choice.lower()
+        )
+
         options = DownloadOptions(
             output_dir=output_dir,
             format_type=format_type,
             quality=quality,
+            cookie_browser=cookie_browser,
+            yt_dlp_executable=self._ytdlp_path,
             ffmpeg_location=self._ffmpeg_path,
             js_runtime_path=self._deno_path,
         )
@@ -1255,6 +1316,10 @@ class VideoToolGUI(ctk.CTk):
         )
 
         self.quality_menu.configure(
+            state=state
+        )
+
+        self.cookie_browser_menu.configure(
             state=state
         )
 

@@ -69,6 +69,7 @@ jobs:
           --name ${{ matrix.build_name }}
           --paths src
           --collect-data customtkinter
+          --collect-all yt_dlp_ejs
           tools/gui_entry.py
 
       - name: Rename artifact with OS suffix

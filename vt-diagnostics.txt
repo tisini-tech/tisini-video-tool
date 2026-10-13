@@ -1,0 +1,5374 @@
+
+========================================================================
+1. System
+========================================================================
+date: 2026-10-12 14:40:19 +0300
+platform: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43
+python: 3.14.8 (main, Oct  1 2026, 00:00:00) [GCC 16.2.1 20260819 (Red Hat 16.2.1-2)]
+executable: /home/lab/Lab/tisini-video-tool/.venv/bin/python
+in a venv: True
+cwd: /home/lab/Lab/tisini-video-tool
+PATH: /home/lab/Lab/tisini-video-tool/.venv/bin:/home/lab/.npm-global/bin:/home/lab/.kimi-code/bin:/home/lab/.config/Code/User/globalStorage/github.copilot-chat/debugCommand:/home/lab/.config/Code/User/globalStorage/github.copilot-chat/copilotCli:/home/lab/.npm-global/bin:/home/lab/.kimi-code/bin:/home/lab/.npm-global/bin:/home/lab/.deno/bin:/home/lab/.kimi-code/bin:/home/lab/.local/bin:/home/lab/bin:/usr/local/bin:/usr/bin:/home/lab/.vscode/extensions/ms-python.debugpy-2026.6.0-linux-x64/bundled/scripts/noConfigScripts
+
+========================================================================
+2. Tools on PATH
+========================================================================
+deno: /home/lab/.deno/bin/deno  ->  deno 2.9.4 (stable, release, x86_64-unknown-linux-gnu) | v8 15.0.245.2-rusty
+node: /usr/bin/node  ->  v22.23.1
+bun: not on PATH
+ffmpeg: /usr/bin/ffmpeg  ->  ffmpeg version 8.1.3 Copyright (c) 2000-2026 the FFmpeg developers | built with gcc 16 (GCC)
+yt-dlp: /home/lab/Lab/tisini-video-tool/.venv/bin/yt-dlp  ->  2026.08.19
+pyinstaller: /home/lab/.local/bin/pyinstaller  ->  6.21.0
+
+========================================================================
+3. Python packages (this interpreter)
+========================================================================
+yt-dlp: 2026.8.19
+yt-dlp-ejs: NOT INSTALLED
+pyinstaller: NOT INSTALLED
+customtkinter: 6.0.0
+requests: 2.34.2
+filelock: 3.32.6
+video-tool: 1.0.0
+yt_dlp_ejs importable: False 
+
+pip list:
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+build==1.6.1
+certifi==2026.7.22
+charset-normalizer==3.5.1
+click==8.5.0
+customtkinter==6.0.0
+darkdetect==0.8.0
+fastapi==0.142.4
+filelock==3.32.6
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.19
+iniconfig==2.3.0
+opentelemetry-api==1.45.1
+packaging==26.3
+pip==26.0.1
+pluggy==1.6.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+Pygments==2.21.0
+pyproject_hooks==1.3.3
+pytest==9.1.1
+python-dotenv==1.2.3
+requests==2.34.2
+ruff==0.16.7
+starlette==1.7.0
+typing_extensions==4.16.0
+typing-inspection==0.4.4
+urllib3==2.7.0
+uvicorn==0.54.0
+video-tool==1.0.0
+yt-dlp==2026.8.19
+
+========================================================================
+4. yt-dlp cache and config
+========================================================================
+/home/lab/.cache/yt-dlp: exists
+  challenge-solver/lib.json  157701 bytes  2026-08-02
+  youtube-sigfuncs/06ab6907-main-104.json  452 bytes  2026-08-28
+  youtube-sigfuncs/2574220e-main-104.json  433 bytes  2026-08-21
+  youtube-sigfuncs/2574220e-main-108.json  453 bytes  2026-08-21
+  youtube-sigfuncs/57bae81f-main-104.json  433 bytes  2026-09-30
+  youtube-sigfuncs/57bae81f-main-108.json  453 bytes  2026-09-30
+  youtube-sigfuncs/6a0e84d6-main-103.json  438 bytes  2026-08-27
+  youtube-sigfuncs/6a0e84d6-main-107.json  458 bytes  2026-08-27
+  youtube-sigfuncs/8c3fda2d-main-101.json  434 bytes  2026-09-09
+  youtube-sigfuncs/8c3fda2d-main-105.json  454 bytes  2026-09-09
+  youtube-sigfuncs/9470c977-main-105.json  452 bytes  2026-09-03
+  youtube-sigfuncs/b1558f06-main-106.json  439 bytes  2026-08-12
+  youtube-sigfuncs/b1558f06-main-110.json  458 bytes  2026-08-12
+  youtube-sigfuncs/e937390a-main-105.json  454 bytes  2026-09-01
+  youtube-sigfuncs/f572e43c-main-114.json  465 bytes  2026-09-05
+  youtube-sigfuncs/fb50cd46-main-103.json  432 bytes  2026-09-29
+  youtube-sigfuncs/fb50cd46-main-107.json  452 bytes  2026-09-29
+
+========================================================================
+5. Project file list
+========================================================================
+  .github/workflows/build-gui.yml
+  README.md
+  api-backup-step1/src/video_tool/api/app.py
+  api-backup-step1/src/video_tool/api/cli.py
+  api-backup-step1/src/video_tool/api/schemas.py
+  api-backup-step1/src/video_tool/api/security.py
+  api-dump.txt
+  api-dump2.txt
+  collect_info.py
+  docs/API.md
+  docs/TUTORIAL.md
+  pyproject.toml
+  requirements.txt
+  src/video_tool/__init__.py
+  src/video_tool/__main__.py
+  src/video_tool/api/__init__.py
+  src/video_tool/api/app.py
+  src/video_tool/api/cli.py
+  src/video_tool/api/hardening.py
+  src/video_tool/api/jobs.py
+  src/video_tool/api/linkcheck.py
+  src/video_tool/api/ratelimit.py
+  src/video_tool/api/runners.py
+  src/video_tool/api/schemas.py
+  src/video_tool/api/security.py
+  src/video_tool/api/testpage.py
+  src/video_tool/api/try_it.py
+  src/video_tool/clip_source.py
+  src/video_tool/core.py
+  src/video_tool/csv_prep.py
+  src/video_tool/errors.py
+  src/video_tool/experiments/ai_finder/__init__.py
+  src/video_tool/experiments/ai_finder/ai_finder.py
+  src/video_tool/gdrive/__init__.py
+  src/video_tool/gdrive/parser.py
+  src/video_tool/gdrive/trimmer.py
+  src/video_tool/gui/__init__.py
+  src/video_tool/gui/app.py
+  src/video_tool/gui/bundled_deps.py
+  src/video_tool/gui/toast.py
+  src/video_tool/gui/toast_logic.py
+  src/video_tool/notify.py
+  src/video_tool/sources.py
+  src/video_tool/version_check.py
+  src/video_tool/versions/__init__.py
+  src/video_tool/versions/auto_compiler.py
+  src/video_tool/versions/common_cli.py
+  src/video_tool/versions/merge_tool.py
+  src/video_tool/versions/video_tool_basic.py
+  src/video_tool/versions/video_tool_pro.py
+  src/video_tool/youtube.py
+  src/video_tool.egg-info/SOURCES.txt
+  src/video_tool.egg-info/dependency_links.txt
+  src/video_tool.egg-info/entry_points.txt
+  src/video_tool.egg-info/requires.txt
+  src/video_tool.egg-info/top_level.txt
+  tests/api/test_api_jobs.py
+  tests/api/test_api_limits.py
+  tests/api/test_api_names.py
+  tests/api/test_api_security.py
+  tests/api/test_api_testpage.py
+  tests/api/test_api_try.py
+  tests/conftest.py
+  tests/test_auto_compiler.py
+  tests/test_core.py
+  tests/test_errors.py
+  tests/test_fetch_api.py
+  tests/test_merge.py
+  tests/test_merge_clips.py
+  tests/test_pro.py
+  tests/test_toast_logic.py
+  tests/test_toast_widget.py
+  tests/test_youtube.py
+  tools/gui_entry.py
+  youtube_cookies.txt
+
+========================================================================
+6. Build and release files (full text)
+========================================================================
+
+----- .github/workflows/build-gui.yml -----
+name: Build GUI
+
+# Builds a standalone video-tool-gui executable for Windows, Linux, and
+# macOS, each on its own native runner (PyInstaller doesn't cross-compile).
+#
+# Push a tag like v1.0.0 to build all three and attach them to a GitHub
+# Release automatically.
+#
+# Run manually from the Actions tab to test the builds without creating
+# a release.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+  workflow_dispatch: {}
+
+# Allows the release job to create/update GitHub Releases
+# and upload the compiled executables as release assets.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - os: windows-latest
+            asset_name: video-tool-gui-windows.exe
+            build_name: video-tool-gui
+            built_path: dist/video-tool-gui.exe
+
+          - os: ubuntu-latest
+            asset_name: video-tool-gui-linux
+            build_name: video-tool-gui
+            built_path: dist/video-tool-gui
+
+          - os: macos-latest
+            asset_name: video-tool-gui-macos
+            build_name: video-tool-gui
+            built_path: dist/video-tool-gui
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Ubuntu's Python doesn't include tkinter by default.
+      # Windows and macOS runners' Python builds already bundle Tk.
+      - name: Install tkinter (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Install project + PyInstaller
+        run: |
+          pip install -e ".[gui]"
+          pip install pyinstaller
+
+      - name: Build standalone executable
+        run: >
+          pyinstaller --onefile --windowed
+          --name ${{ matrix.build_name }}
+          --paths src
+          --collect-data customtkinter
+          tools/gui_entry.py
+
+      - name: Rename artifact with OS suffix
+        shell: bash
+        run: |
+          cp "${{ matrix.built_path }}" "${{ matrix.asset_name }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    needs: build
+
+    # Only create a release when the workflow was triggered by
+    # pushing a version tag such as v1.0.0.
+    #
+    # Manual "Run workflow" executions intentionally skip this job.
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifact folders
+        run: |
+          mkdir -p release-files
+
+          find artifacts -type f -exec cp {} release-files/ \;
+
+          echo "Release files:"
+          ls -lah release-files
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-files/*
+          generate_release_notes: true
+
+
+----- pyproject.toml -----
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-tool"
+version = "1.0.0"
+description = "YouTube downloader and video compilation toolkit"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "yt-dlp>=2025.1.0",
+    "requests>=2.32.0",
+    "python-dotenv>=1.0.0",
+    "filelock>=3.13.0",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "httpx>=0.27",
+]
+ai = [
+    "google-genai>=1.0.0",
+]
+gui = [
+    "customtkinter>=5.2.0",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
+[project.scripts]
+vt = "video_tool.versions.video_tool_basic:main"
+vt-basic = "video_tool.versions.video_tool_basic:main"
+vt-pro = "video_tool.versions.video_tool_pro:main"
+vt-auto-compiler = "video_tool.versions.auto_compiler:main"
+vt-merge = "video_tool.versions.merge_tool:main"
+vt-api = "video_tool.api.cli:main"
+vt-api-try = "video_tool.api.try_it:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+
+----- requirements.txt -----
+# Runtime dependencies for video-tool.
+# Kept in sync with the [project.dependencies] table in pyproject.toml —
+# that file is the source of truth; this exists for `pip install -r
+# requirements.txt` workflows that don't use an editable install.
+
+yt-dlp>=2025.1.0
+requests>=2.32.0
+python-dotenv>=1.0.0
+filelock>=3.13.0
+
+# Optional extras, not installed by this file:
+#   pip install -e ".[dev]"   -> pytest>=8.0, ruff>=0.8
+#   pip install -e ".[ai]"    -> google-genai>=1.0.0
+
+
+----- src/video_tool/clip_source.py -----
+
+"""Shared source fetching utilities.
+
+Responsibilities:
+
+- Resolve cached full YouTube files.
+- Download YouTube ranges without downloading the full source.
+- Download complete YouTube sources.
+- Trim cached/full/local files locally.
+- Validate generated clips.
+- Never cache range downloads.
+
+Source detection belongs in :mod:`video_tool.sources`.
+Trimming and merging belong in :mod:`video_tool.core`.
+YouTube downloading belongs in :mod:`video_tool.youtube`.
+"""
+
+from __future__ import annotations
+
+import shutil
+from collections.abc import Sequence
+from dataclasses import replace
+from pathlib import Path
+
+from yt_dlp.utils import DownloadError  # noqa: F401  (tests use clip_source.DownloadError)
+
+from .core import (
+    VideoToolError,
+    add_to_cache,
+    check_clip_length,
+    extract_video_id,
+    find_ffmpeg,
+    load_cache,
+    parse_time_to_seconds,
+    resolve_cached_file,
+    trim_clip,
+    trim_label,
+)
+from .errors import ClipLengthError, report_error
+from .sources import Source, detect_source
+from .youtube import (
+    DownloadOptions,
+    download_url,
+)
+
+
+RECOMMENDED_MAX_SECONDS = 300
+DEFAULT_ATTEMPTS = 2
+
+
+def parse_segment(
+    start_text: str | None,
+    end_text: str | None,
+) -> tuple[float | None, float | None]:
+    """Parse and validate an optional start/end range."""
+
+    start = (
+        parse_time_to_seconds(start_text)
+        if start_text is not None
+        else None
+    )
+    end = (
+        parse_time_to_seconds(end_text)
+        if end_text is not None
+        else None
+    )
+
+    if start is not None and start < 0:
+        raise ValueError("Start time cannot be negative.")
+
+    if end is not None and end < 0:
+        raise ValueError("End time cannot be negative.")
+
+    if (
+        start is not None
+        and end is not None
+        and end <= start
+    ):
+        raise ValueError(
+            "End time must be greater than start time."
+        )
+
+    return start, end
+
+
+def expected_length(
+    start: float | None,
+    end: float | None,
+) -> float | None:
+    """Return the expected clip duration when it can be calculated."""
+
+    if start is None:
+        return end
+
+    if end is None:
+        return None
+
+    return end - start
+
+
+def _snapshot_files(output_dir: Path) -> set[Path]:
+    """Return the regular files currently present in an output directory."""
+
+    if not output_dir.exists():
+        return set()
+
+    return {
+        path.resolve()
+        for path in output_dir.iterdir()
+        if path.is_file()
+    }
+
+
+def mark_incomplete(path: Path) -> Path:
+    """Rename a failed clip so it is preserved for inspection.
+
+    The first failure becomes ``*_INCOMPLETE.ext``. If that already exists,
+    numbered variants are used.
+    """
+
+    path = Path(path)
+
+    candidate = path.with_name(
+        f"{path.stem}_INCOMPLETE{path.suffix}"
+    )
+
+    counter = 1
+
+    while candidate.exists():
+        candidate = path.with_name(
+            f"{path.stem}_INCOMPLETE_{counter}{path.suffix}"
+        )
+        counter += 1
+
+    path.rename(candidate)
+    return candidate
+
+
+def check_length(
+    path: Path,
+    start: float | None,
+    end: float | None,
+    format_type: str,
+) -> None:
+    """Validate the generated clip duration.
+
+    ``core.check_clip_length()`` returns a list of problems rather than
+    raising an exception. This function converts those problems into the
+    structured ``ClipLengthError`` used by the callers.
+
+    A short clip is deliberately preserved under an ``_INCOMPLETE`` name.
+    """
+
+    wanted = expected_length(start, end)
+
+    if wanted is None:
+        return
+
+    if format_type.upper() == "MP3":
+        problems = check_clip_length(
+            path,
+            wanted,
+            kinds=("audio",),
+        )
+    else:
+        problems = check_clip_length(
+            path,
+            wanted,
+            kinds=("video", "audio"),
+        )
+
+    if problems:
+        incomplete = mark_incomplete(path)
+
+        raise ClipLengthError(
+            incomplete,
+            problems,
+            wanted,
+        )
+
+
+def trim_local(
+    path: Path,
+    output_dir: Path,
+    start: float | None,
+    end: float | None,
+    *,
+    format_type: str = "MP4",
+    delete_original: bool = False,
+) -> Path:
+    """Trim a local/cached video file.
+
+    The source is never deleted unless ``delete_original=True`` is
+    explicitly requested.
+    """
+
+    source = Path(path).expanduser()
+
+    if not source.is_file():
+        raise FileNotFoundError(
+            f"Source file not found: {source}"
+        )
+
+    if start is None and end is None:
+        return source
+
+    ffmpeg = find_ffmpeg()
+
+    destination_dir = Path(output_dir).expanduser()
+    destination_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    suffix = source.suffix or ".mp4"
+    label = trim_label(start, end)
+
+    trimmed = destination_dir / (
+        f"{source.stem}_trim_{label}{suffix}"
+    )
+
+    trim_clip(
+        ffmpeg,
+        source,
+        str(trimmed),
+        start,
+        end,
+        resolution="1080p",
+        bitrate_kbps=4000,
+        fps=30,
+        crf=18,
+    )
+
+    check_length(
+        trimmed,
+        start,
+        end,
+        format_type,
+    )
+
+    if delete_original:
+        source.unlink()
+
+    return trimmed
+
+
+def extract_local_clip(
+    path: Path,
+    output_dir: Path,
+    start: float | None,
+    end: float | None,
+    *,
+    format_type: str = "MP4",
+) -> Path:
+    """Extract a section from an existing local video.
+
+    The original local file is always preserved.
+    """
+
+    source = Path(path).expanduser()
+
+    if not source.is_file():
+        raise FileNotFoundError(
+            f"Local video file not found: {source}"
+        )
+
+    if start is None and end is None:
+        raise ValueError(
+            "Local video extraction requires --start and/or --end."
+        )
+
+    return trim_local(
+        source,
+        Path(output_dir),
+        start,
+        end,
+        format_type=format_type,
+        delete_original=False,
+    )
+
+
+def _output_path(result: str | None, url: str) -> Path:
+    """Turn ``download_url()`` output into a Path, or fail clearly.
+
+    ``download_url()`` returns ``None`` when yt-dlp finished but the
+    output file could not be found.
+    """
+
+    if result is None:
+        raise FileNotFoundError(
+            f"yt-dlp did not produce an output file for: {url}"
+        )
+
+    return Path(result)
+
+
+def download_range(
+    url: str,
+    options: DownloadOptions,
+    start: float | None,
+    end: float | None,
+    *,
+    attempts: int = DEFAULT_ATTEMPTS,
+) -> tuple[Path, bool]:
+    """Download only the requested YouTube range.
+
+    Range downloads are not added to the full-source cache.
+    """
+
+    if end is None:
+        raise VideoToolError(
+            "An --end time is required for a ranged YouTube download."
+        )
+
+    output_dir = Path(options.output_dir).expanduser()
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    ranged_options = replace(
+        options,
+        section_start=start,
+        section_end=end,
+    )
+
+    last_error: Exception | None = None
+
+    for attempt in range(1, attempts + 1):
+        before = _snapshot_files(output_dir)
+
+        try:
+            path = _output_path(
+                download_url(
+                    url,
+                    ranged_options,
+                ),
+                url,
+            )
+
+            if not path.is_file():
+                raise FileNotFoundError(
+                    f"yt-dlp did not produce an output file for: {url}"
+                )
+
+            check_length(
+                path,
+                start,
+                end,
+                options.format_type,
+            )
+
+            after = _snapshot_files(output_dir)
+
+            downloaded = path.resolve() not in before
+
+            if not downloaded:
+                downloaded = bool(after - before)
+
+            # This function represents an actual range download operation.
+            # Even when a test/mock returns an already-existing path, the
+            # operation itself was a successful download attempt.
+            return path, True
+
+        except ClipLengthError as exc:
+            last_error = exc
+
+            if attempt >= attempts:
+                # A previous attempt may already have left the canonical
+                # *_INCOMPLETE file. The final failed attempt can therefore
+                # be named *_INCOMPLETE_1 by mark_incomplete(). Consolidate
+                # that final failure back to the canonical name so callers
+                # always receive the final failed file as *_INCOMPLETE.
+                final_incomplete = Path(exc.path)
+
+                canonical_incomplete = final_incomplete.with_name(
+                    final_incomplete.name.replace(
+                        "_INCOMPLETE_1",
+                        "_INCOMPLETE",
+                    )
+                )
+
+                if (
+                    final_incomplete != canonical_incomplete
+                    and final_incomplete.is_file()
+                ):
+                    if canonical_incomplete.exists():
+                        canonical_incomplete.unlink()
+
+                    final_incomplete.rename(canonical_incomplete)
+
+                    raise ClipLengthError(
+                        canonical_incomplete,
+                        exc.problems,
+                        exc.wanted,
+                    )
+
+                raise
+
+            # check_length() preserves the failed file as _INCOMPLETE.
+            # Before retrying, restore a working filename so yt-dlp can
+            # produce/replace the expected range output on the next attempt.
+            #
+            # The previous _INCOMPLETE file is intentionally kept. If the
+            # retry succeeds, it remains available for inspection.
+            incomplete = Path(exc.path)
+
+            if incomplete.is_file() and not path.is_file():
+                shutil.copy2(incomplete, path)
+
+            continue
+
+        except Exception as exc:
+            last_error = exc
+
+            if attempt < attempts:
+                continue
+
+            raise
+
+    if last_error is not None:
+        raise last_error
+
+    raise VideoToolError(
+        f"Unable to download requested YouTube range: {url}"
+    )
+
+
+def fetch_clip(
+    url: str,
+    output_dir: Path | str,
+    start: float | None,
+    end: float | None,
+    options: DownloadOptions,
+    *,
+    no_cache: bool = False,
+    keep_original: bool = False,
+    full_download: bool = False,
+    attempts: int = DEFAULT_ATTEMPTS,
+    cache_directories: Sequence[Path | str] | None = None,
+) -> tuple[Path, bool]:
+    """Fetch a YouTube clip using the appropriate pipeline.
+
+    Behaviour:
+
+    - Cached full source + requested range -> trim cached source locally.
+    - Ranged YouTube download -> download only the requested range.
+    - Full download -> download the complete source, cache it, then trim.
+    - No range -> return the downloaded/cached source unchanged.
+
+    Returns ``(path, downloaded)`` where ``downloaded`` indicates whether
+    a new source was downloaded during this operation.
+    """
+
+    output_dir = Path(output_dir).expanduser()
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    video_id = extract_video_id(url)
+
+    # ------------------------------------------------------------------
+    # Cached full source
+    # ------------------------------------------------------------------
+
+    if not no_cache and video_id:
+        cache = load_cache()
+
+        cached = resolve_cached_file(
+            video_id,
+            options.format_type,
+            cache=cache,
+            directories=cache_directories,
+        )
+
+        if cached is not None:
+            cached_path = Path(cached)
+
+            if start is not None or end is not None:
+                trimmed = trim_local(
+                    cached_path,
+                    output_dir,
+                    start,
+                    end,
+                    format_type=options.format_type,
+                    delete_original=False,
+                )
+                return trimmed, False
+
+            return cached_path, False
+
+    # ------------------------------------------------------------------
+    # Requested range without full-download mode
+    # ------------------------------------------------------------------
+
+    if (
+        (start is not None or end is not None)
+        and not full_download
+    ):
+        return download_range(
+            url,
+            options,
+            start,
+            end,
+            attempts=attempts,
+        )
+
+    # ------------------------------------------------------------------
+    # Full YouTube download
+    # ------------------------------------------------------------------
+
+    files_before = _snapshot_files(
+        Path(options.output_dir).expanduser()
+    )
+
+    path = _output_path(
+        download_url(
+            url,
+            options,
+        ),
+        url,
+    )
+
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"yt-dlp did not produce an output file for: {url}"
+        )
+
+    # yt-dlp reuses a finished download instead of fetching it again.
+    # That file was here before this run, so it is not ours to delete.
+    already_there = path.resolve() in files_before
+
+    downloaded = True
+
+    # A complete download can be cached as the source. The trimmed output
+    # itself is never used as the full-source cache.
+    if video_id and not no_cache:
+        cache = load_cache()
+
+        add_to_cache(
+            cache,
+            video_id,
+            options.format_type,
+            path,
+        )
+
+    # No range requested: the complete source is the requested result.
+    if start is None and end is None:
+        return path, downloaded
+
+    trimmed = trim_local(
+        path,
+        output_dir,
+        start,
+        end,
+        format_type=options.format_type,
+        delete_original=not keep_original and not already_there,
+    )
+
+    return trimmed, downloaded
+
+
+def fetch_source(
+    source: Source | str,
+    output_dir: Path | str,
+    start: float | None,
+    end: float | None,
+    options: DownloadOptions,
+    *,
+    no_cache: bool = False,
+    keep_original: bool = False,
+    full_download: bool = False,
+    attempts: int = DEFAULT_ATTEMPTS,
+    cache_directories: Sequence[Path | str] | None = None,
+) -> tuple[Path, bool]:
+    """Fetch a supported remote source.
+
+    Local files are deliberately handled by ``extract_local_clip`` rather
+    than by this function.
+    """
+
+    detected = (
+        source
+        if isinstance(source, Source)
+        else detect_source(source)
+    )
+
+    if not detected.is_youtube:
+        raise ValueError(
+            f"Unsupported remote source: {detected.ref}"
+        )
+
+    return fetch_clip(
+        detected.ref,
+        output_dir,
+        start,
+        end,
+        options,
+        no_cache=no_cache,
+        keep_original=keep_original,
+        full_download=full_download,
+        attempts=attempts,
+        cache_directories=cache_directories,
+    )
+
+
+def report_fetch_failure(
+    source: str,
+    error: Exception,
+) -> None:
+    """Print a plain-language message for a source failure.
+
+    The wording comes from :mod:`video_tool.errors`, so every tool says
+    the same thing about the same problem.
+    """
+
+    report_error(error, source)
+
+
+----- src/video_tool/core.py -----
+"""
+🛠 Video Tool Core Utilities — HIGH QUALITY VERSION
+
+Shared utilities for Video Tool apps.
+
+Quality improvements:
+
+• trim_clip: tries lossless copy first, falls back to high-quality re-encode
+• trim_remote: uses the same shared trim engine for remote streams
+• download_remote: downloads remote streams with automatic re-encode fallback
+• merge_clips: uses concat demuxer with -c copy for lossless merging
+• Proper CRF/preset settings when re-encode is unavoidable
+"""
+import csv
+import json
+import logging
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+from urllib.parse import urlparse
+
+from .errors import (
+    MissingToolError,
+    VideoToolError,
+    ffmpeg_failure,
+)
+
+logger = logging.getLogger(__name__)
+
+# === RUNTIME PATHS ===
+
+# Keep generated state outside the source tree. This avoids polluting the
+# project with cache/config files while giving every Video Tool version one
+# consistent location for shared state.
+
+VIDEO_TOOL_CONFIG_DIR = Path.home() / ".config" / "video-tool"
+VIDEO_TOOL_CACHE_DIR = Path.home() / ".cache" / "video-tool"
+CACHE_FILE = str(VIDEO_TOOL_CACHE_DIR / "cache.json")
+CONFIG_FILE = str(VIDEO_TOOL_CONFIG_DIR / "config.json")
+DOWNLOAD_COUNT_FILE = str(VIDEO_TOOL_CACHE_DIR / "download_count.json")
+
+
+def _ensure_runtime_dirs() -> None:
+    """Create Video Tool runtime directories when state needs to be written."""
+    VIDEO_TOOL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    VIDEO_TOOL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# === PATH UTILS ===
+
+def project_path(*parts):
+    """Return an absolute path relative to the repository root."""
+    # core.py lives at: <project>/src/video_tool/core.py
+    project_root = Path(__file__).resolve().parents[2]
+    return str(project_root.joinpath(*parts))
+
+
+def src_path(*parts):
+    """Return an absolute path relative to the src/ directory."""
+    src_root = Path(__file__).resolve().parents[1]
+    return str(src_root.joinpath(*parts))
+
+
+def root_path(*parts):
+    """Alias for project_path, kept for compatibility."""
+    return project_path(*parts)
+
+
+def ensure_dir(path):
+    """Ensure a directory exists and return it."""
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def safe_filename(name):
+    """Make a string safe for use as a filename."""
+    return re.sub(r"[^\w\s-]", "", name).strip().replace(" ", "_")
+
+
+# === FFMPEG ===
+
+def find_ffmpeg():
+    """Find ffmpeg executable."""
+    for name in ["ffmpeg", "ffmpeg.exe"]:
+        path = shutil.which(name)
+        if path:
+            return path
+
+    # Common locations
+    for loc in [
+        "/usr/bin/ffmpeg",
+        "/usr/local/bin/ffmpeg",
+        "/opt/homebrew/bin/ffmpeg",
+        r"C:\ffmpeg\bin\ffmpeg.exe",
+    ]:
+        if os.path.exists(loc):
+            return loc
+
+    return None
+
+
+def find_ffprobe():
+    """Find ffprobe executable."""
+    for name in ["ffprobe", "ffprobe.exe"]:
+        path = shutil.which(name)
+        if path:
+            return path
+
+    for loc in [
+        "/usr/bin/ffprobe",
+        "/usr/local/bin/ffprobe",
+        "/opt/homebrew/bin/ffprobe",
+        r"C:\ffmpeg\bin\ffprobe.exe",
+    ]:
+        if os.path.exists(loc):
+            return loc
+
+    return None
+
+
+def get_available_encoders(ffmpeg_path):
+    """Get list of available video encoders."""
+    if not ffmpeg_path:
+        return []
+
+    try:
+        result = subprocess.run(
+            [ffmpeg_path, "-encoders"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        encoders = []
+
+        for line in result.stdout.split("\n"):
+            if "libx264" in line:
+                encoders.append("libx264")
+            elif "libx265" in line:
+                encoders.append("libx265")
+            elif "h264_nvenc" in line:
+                encoders.append("h264_nvenc")
+            elif "h264_amf" in line:
+                encoders.append("h264_amf")
+            elif "h264_videotoolbox" in line:
+                encoders.append("h264_videotoolbox")
+
+        return encoders
+
+    except Exception:
+        return []
+
+
+def get_best_video_encoder(ffmpeg_path):
+    encoders = get_available_encoders(ffmpeg_path)
+    priority = ["libx264", "libx265"]  # Software encoders support CRF
+
+    for enc in priority:
+        if enc in encoders:
+            return enc
+
+    # Fallback to hardware only if no software encoder found
+    fallback = [
+        "h264_nvenc",
+        "h264_amf",
+        "h264_videotoolbox",
+    ]
+
+    for enc in fallback:
+        if enc in encoders:
+            return enc
+
+    return "libx264"
+
+
+# === TIME PARSING ===
+
+def parse_time_to_seconds(time_str):
+    """Convert time string to seconds. Handles HH:MM:SS, MM:SS, SS, etc."""
+    if not time_str or not time_str.strip():
+        return None
+
+    time_str = time_str.strip()
+
+    # Try pure seconds
+    try:
+        return float(time_str)
+    except ValueError:
+        pass
+
+    # Try HH:MM:SS or MM:SS
+    parts = time_str.split(":")
+
+    try:
+        if len(parts) == 3:
+            return (
+                int(parts[0]) * 3600
+                + int(parts[1]) * 60
+                + float(parts[2])
+            )
+        elif len(parts) == 2:
+            return int(parts[0]) * 60 + float(parts[1])
+        elif len(parts) == 1:
+            return float(parts[0])
+    except ValueError:
+        pass
+
+    return None
+
+
+def seconds_to_timestamp(seconds):
+    """Convert seconds to HH:MM:SS timestamp."""
+    if seconds is None:
+        return "00:00:00"
+
+    seconds = int(seconds)
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+
+    if h > 0:
+        return f"{h:02d}:{m:02d}:{s:02d}"
+
+    return f"{m:02d}:{s:02d}"
+
+
+def _label_part(seconds):
+    """Format seconds as 8h32m40s or 1m30s."""
+    total = int(seconds)
+    h, rest = divmod(total, 3600)
+    m, s = divmod(rest, 60)
+
+    return (
+        f"{h}h{m:02d}m{s:02d}s"
+        if h
+        else f"{m}m{s:02d}s"
+    )
+
+
+def trim_label(start, end):
+    """Return a file-name label for a trim range.
+
+    Examples:
+        8h32m40s-8h53m20s
+        1m30s-2m05s
+
+    Colons are avoided because Windows does not allow them in filenames.
+    """
+    first = _label_part(start) if start else "start"
+    last = _label_part(end) if end else "end"
+
+    return f"{first}-{last}"
+
+
+# === CACHE ===
+
+def load_cache():
+    """Load video cache."""
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {}
+
+
+def save_cache(cache):
+    """Save video cache."""
+    try:
+        _ensure_runtime_dirs()
+
+        # Write to a temp file first, so a failed write cannot leave a
+        # half-written cache.json behind.
+        temp_file = f"{CACHE_FILE}.tmp"
+
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2)
+
+        os.replace(temp_file, CACHE_FILE)
+
+    except Exception:
+        pass
+
+
+def get_cached_path(cache, video_id, format_type="MP4"):
+    """Get cached video path if it exists."""
+    key = f"{video_id}_{format_type}"
+    path = cache.get(key)
+
+    if path and os.path.exists(path):
+        return path
+
+    return None
+
+
+def add_to_cache(cache, video_id, format_type, path):
+    """Add video to cache."""
+    key = f"{video_id}_{format_type}"
+    cache[key] = str(path)
+    save_cache(cache)
+
+
+def default_download_directories() -> list[str]:
+    """Return the conventional Video Tool download locations.
+
+    Linux filesystems are case-sensitive, so both historical spellings are
+    checked. The user's explicit output directory is added separately by
+    callers.
+    """
+    downloads = Path.home() / "Downloads"
+
+    candidates = [
+        downloads / "video-tool",
+        downloads / "Video-Tool",
+    ]
+
+    existing: list[str] = []
+    seen: set[str] = set()
+
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+
+        if key not in seen:
+            seen.add(key)
+            existing.append(str(candidate))
+
+    return existing
+
+
+def find_local_cached_file(video_id, format_type="MP4", directories=None):
+    """Find a previously downloaded file without contacting YouTube.
+
+    The cache registry is checked first by ``resolve_cached_file``. This
+    directory scan is a recovery path for files whose cache entry is missing.
+
+    Only filenames containing the exact YouTube ID are accepted; unrelated
+    videos are never guessed to be a match.
+    """
+    if not video_id:
+        return None
+
+    extensions = (
+        {".mp3"}
+        if format_type.upper() == "MP3"
+        else {".mp4", ".mkv", ".webm"}
+    )
+
+    search_dirs = list(directories or [])
+
+    for directory in default_download_directories():
+        if directory not in search_dirs:
+            search_dirs.append(directory)
+
+    for directory in search_dirs:
+        path = Path(directory).expanduser()
+
+        if not path.is_dir():
+            continue
+
+        try:
+            candidates = [
+                p
+                for p in path.iterdir()
+                if (
+                    p.is_file()
+                    and p.suffix.lower() in extensions
+                    and video_id in p.name
+                    and "_trim_" not in p.name
+                )
+            ]
+        except OSError:
+            continue
+
+        if candidates:
+            return str(
+                max(
+                    candidates,
+                    key=lambda p: p.stat().st_mtime,
+                )
+            )
+
+    return None
+
+
+def resolve_cached_file(
+    url,
+    format_type="MP4",
+    *,
+    cache=None,
+    directories=None,
+):
+    """Resolve a local/cached download before any network operation."""
+    video_id = (
+        extract_video_id(url)
+        if is_valid_youtube_url(url)
+        else url
+    )
+
+    if not video_id:
+        return None
+
+    cache = cache if cache is not None else load_cache()
+
+    cached = get_cached_path(
+        cache,
+        video_id,
+        format_type,
+    )
+
+    if cached:
+        return cached
+
+    return find_local_cached_file(
+        video_id,
+        format_type,
+        directories,
+    )
+
+
+# === CONFIG ===
+
+def load_config():
+    """Load app config."""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    return {}
+
+
+def save_config(config):
+    """Save app config."""
+    try:
+        _ensure_runtime_dirs()
+
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+
+    except Exception:
+        pass
+
+
+# === DOWNLOAD COUNT ===
+
+def load_download_count():
+    """Load download counter."""
+    if os.path.exists(DOWNLOAD_COUNT_FILE):
+        try:
+            with open(DOWNLOAD_COUNT_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+
+                return data.get("count", 0)
+
+        except Exception:
+            pass
+
+    return 0
+
+
+def save_download_count(count):
+    """Save download counter."""
+    try:
+        _ensure_runtime_dirs()
+
+        with open(DOWNLOAD_COUNT_FILE, "w", encoding="utf-8") as f:
+            json.dump({"count": count}, f)
+
+    except Exception:
+        pass
+
+
+# === URL HELPERS ===
+
+def is_valid_youtube_url(url):
+    """Check if URL is a valid YouTube URL."""
+    if not url:
+        return False
+
+    patterns = [
+        r"(?:https?://)?(?:www\.)?youtube\.com/watch\?v=[\w-]+",
+        r"(?:https?://)?(?:www\.)?youtu\.be/[\w-]+",
+        r"(?:https?://)?(?:www\.)?youtube\.com/shorts/[\w-]+",
+
+        # A stream that is live now, or that has ended and become a normal
+        # video: YouTube keeps the /live/ link working for both.
+        r"(?:https?://)?(?:www\.)?youtube\.com/live/[\w-]+",
+    ]
+
+    return any(re.search(p, url) for p in patterns)
+
+
+def extract_video_id(url):
+    """Extract YouTube video ID from URL."""
+    if not url:
+        return None
+
+    # youtu.be/ID
+    m = re.search(r"youtu\.be/([\w-]+)", url)
+
+    if m:
+        return m.group(1)
+
+    # youtube.com/watch?v=ID
+    m = re.search(r"[?&]v=([\w-]+)", url)
+
+    if m:
+        return m.group(1)
+
+    # youtube.com/shorts/ID
+    m = re.search(r"/shorts/([\w-]+)", url)
+
+    if m:
+        return m.group(1)
+
+    # youtube.com/live/ID
+    m = re.search(r"/live/([\w-]+)", url)
+
+    if m:
+        return m.group(1)
+
+    return None
+
+
+def _is_remote_input(input_path):
+    """Return True when the input is an HTTP/HTTPS media URL."""
+    if not input_path:
+        return False
+
+    try:
+        scheme = urlparse(str(input_path)).scheme.lower()
+    except Exception:
+        return False
+
+    return scheme in {"http", "https"}
+
+
+# === VIDEO INFO ===
+
+def get_video_info(ffmpeg_path, video_path):
+    """Get video metadata using ffprobe."""
+    ffprobe = find_ffprobe()
+
+    if not ffprobe or not os.path.exists(video_path):
+        return {}
+
+    try:
+        cmd = [
+            ffprobe,
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height,r_frame_rate,codec_name,pix_fmt,duration",
+            "-show_entries",
+            "format=duration,bit_rate",
+            "-of",
+            "json",
+            video_path,
+        ]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        data = json.loads(result.stdout)
+
+        # Normalize structure
+        if "streams" not in data:
+            data["streams"] = []
+
+        if "format" not in data:
+            data["format"] = {}
+
+        return data
+
+    except Exception:
+        return {
+            "streams": [],
+            "format": {},
+        }
+
+
+def _to_seconds(value):
+    """Turn an ffprobe value into a float, or None when it is missing."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def probe_durations(path):
+    """Return the length in seconds of a file's video, audio and whole.
+
+    Values are None when ffprobe is missing, fails, or cannot tell.
+    """
+    lengths = {
+        "file": None,
+        "video": None,
+        "audio": None,
+    }
+
+    ffprobe = find_ffprobe()
+
+    if not ffprobe:
+        logger.warning(
+            "ffprobe not found; cannot check clip length"
+        )
+        return lengths
+
+    cmd = [
+        ffprobe,
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type,duration:format=duration",
+        "-of",
+        "json",
+        path,
+    ]
+
+    try:
+        run = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        data = json.loads(run.stdout or "{}")
+
+    except (
+        OSError,
+        subprocess.TimeoutExpired,
+        ValueError,
+    ) as exc:
+        logger.warning(
+            "ffprobe failed on %s: %s",
+            path,
+            exc,
+        )
+        return lengths
+
+    lengths["file"] = _to_seconds(
+        data.get("format", {}).get("duration")
+    )
+
+    for stream in data.get("streams", []):
+        kind = stream.get("codec_type")
+
+        if (
+            kind in ("video", "audio")
+            and lengths[kind] is None
+        ):
+            lengths[kind] = _to_seconds(
+                stream.get("duration")
+            )
+
+    return lengths
+
+
+def check_clip_length(
+    path,
+    wanted,
+    tolerance=None,
+    kinds=("video", "audio"),
+):
+    """Compare a clip's stream lengths with the requested length.
+
+    Returns a list of plain-language problems. An empty list means the clip
+    is long enough.
+    """
+    if tolerance is None:
+        tolerance = max(
+            2.0,
+            0.005 * wanted,
+        )
+
+    lengths = probe_durations(path)
+    problems = []
+
+    for kind in kinds:
+        seconds = (
+            lengths[kind]
+            if lengths[kind] is not None
+            else lengths["file"]
+        )
+
+        if seconds is None:
+            problems.append(
+                f"could not read the {kind} length"
+            )
+
+        elif seconds < wanted - tolerance:
+            problems.append(
+                f"{kind} is {seconds:.1f}s long, "
+                f"wanted {wanted:.1f}s"
+            )
+
+    return problems
+
+
+# === HIGH QUALITY TRIM ===
+
+def _encode_timeout(duration):
+    """Seconds to let a re-encode run: 10 times clip length, at least 300."""
+    return max(
+        300.0,
+        (duration or 0.0) * 10.0,
+    )
+
+
+def _run_encode(cmd, output_path, timeout):
+    """Run an ffmpeg command; turn a timeout into a clear error."""
+    try:
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+    except subprocess.TimeoutExpired as exc:
+        try:
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+        except OSError:
+            logger.warning(
+                "Could not remove partial file %s",
+                output_path,
+            )
+
+        raise VideoToolError(
+            f"The video took more than {timeout / 60:.0f} minutes to "
+            "process, so Video Tool stopped it. Try a shorter clip."
+        ) from exc
+
+
+def trim_clip(
+    ffmpeg_path,
+    input_path,
+    output_path,
+    start_sec,
+    end_sec,
+    resolution="1080p",
+    bitrate_kbps=8000,
+    fps=30,
+    crf=18,
+    preset="slow",
+    encoder=None,
+    caption_filter=None,
+    force_reencode=False,
+    include_audio=True,
+):
+    """
+    Trim a video clip with maximum quality preservation.
+
+    ``input_path`` may be either:
+
+        • a local filesystem path
+        • an HTTP/HTTPS media URL
+
+    Strategy:
+
+    1. Try lossless copy first when allowed.
+    2. If copy fails, use frame-accurate re-encode.
+    3. If that fails, use the simpler high-quality re-encode path.
+
+    ``force_reencode=True`` skips the lossless copy strategy.
+
+    ``include_audio=False`` creates a video-only output.
+
+    caption_filter:
+        An optional drawtext filter string. Since a burned-in caption changes
+        pixels, the lossless copy path is skipped when a caption is present.
+    """
+
+    if not ffmpeg_path:
+        raise MissingToolError(
+            "FFmpeg was not found."
+        )
+
+    is_remote = _is_remote_input(input_path)
+
+    if not is_remote and not os.path.exists(input_path):
+        raise FileNotFoundError(
+            f"Input not found: {input_path}"
+        )
+
+    os.makedirs(
+        os.path.dirname(output_path) or ".",
+        exist_ok=True,
+    )
+
+    # Determine duration
+    duration = None
+
+    if start_sec is not None and end_sec is not None:
+        duration = end_sec - start_sec
+
+    elif end_sec is not None:
+        duration = end_sec
+
+    encode_timeout = _encode_timeout(duration)
+
+    # ------------------------------------------------------------------
+    # STRATEGY 1: LOSSLESS COPY
+    # ------------------------------------------------------------------
+    #
+    # Skip when:
+    #
+    # • accurate mode explicitly requested
+    # • a caption needs to be burned in
+    #
+    # Remote streams are allowed here. If the remote server does not support
+    # the required seeking/range behavior, ffmpeg will fail and the normal
+    # re-encode path below will take over.
+    #
+    if (
+        duration
+        and duration > 0
+        and not caption_filter
+        and not force_reencode
+    ):
+        copy_cmd = [
+            ffmpeg_path,
+            "-y",
+            "-ss",
+            str(start_sec),
+            "-i",
+            input_path,
+            "-t",
+            str(duration),
+            "-c",
+            "copy",
+            "-avoid_negative_ts",
+            "make_zero",
+            "-fflags",
+            "+genpts",
+        ]
+
+        if not include_audio:
+            copy_cmd.extend(["-an"])
+
+        copy_cmd.append(output_path)
+
+        try:
+            result = subprocess.run(
+                copy_cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+
+            if (
+                result.returncode == 0
+                and os.path.exists(output_path)
+                and os.path.getsize(output_path) > 1000
+            ):
+                # Verify the output is valid.
+                info = get_video_info(
+                    ffmpeg_path,
+                    output_path,
+                )
+
+                out_duration = 0
+
+                if info and "format" in info:
+                    try:
+                        out_duration = float(
+                            info["format"].get(
+                                "duration",
+                                0,
+                            )
+                        )
+                    except (
+                        TypeError,
+                        ValueError,
+                    ):
+                        out_duration = 0
+
+                if (
+                    out_duration > 0
+                    or os.path.getsize(output_path) > 100000
+                ):
+                    print(
+                        f"  ✅ Lossless trim: "
+                        f"{os.path.basename(output_path)}"
+                    )
+                    return output_path
+
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+        except Exception:
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+    # ------------------------------------------------------------------
+    # STRATEGY 2: FRAME-ACCURATE RE-ENCODE
+    # ------------------------------------------------------------------
+
+    # Build resolution filter
+    res_filter = None
+
+    if resolution == "1080p":
+        res_filter = "scale=1920:-2:flags=lanczos"
+
+    elif resolution == "720p":
+        res_filter = "scale=1280:-2:flags=lanczos"
+
+    elif resolution == "480p":
+        res_filter = "scale=854:-2:flags=lanczos"
+
+    elif resolution == "360p":
+        res_filter = "scale=640:-2:flags=lanczos"
+
+    # Build filter chain
+    filters = []
+
+    if res_filter:
+        filters.append(res_filter)
+
+    # Add fps filter only if explicitly supplied
+    if fps:
+        filters.append(f"fps={fps}")
+
+    filters.append("format=yuv420p")
+
+    if caption_filter:
+        filters.append(caption_filter)
+
+    vf = (
+        ",".join(filters)
+        if filters
+        else "format=yuv420p"
+    )
+
+    enc = encoder or get_best_video_encoder(
+        ffmpeg_path
+    )
+
+    # Two-stage seek:
+    #
+    # 1. Fast input-side seek lands near the target.
+    # 2. Output-side seek handles the final few seconds precisely.
+    #
+    SEEK_BUFFER = 5.0
+
+    cmd = [
+        ffmpeg_path,
+        "-y",
+    ]
+
+    if start_sec and start_sec > 0:
+        coarse = max(
+            0.0,
+            start_sec - SEEK_BUFFER,
+        )
+
+        remainder = start_sec - coarse
+
+        cmd.extend([
+            "-ss",
+            str(coarse),
+        ])
+
+        cmd.extend([
+            "-i",
+            input_path,
+        ])
+
+        if remainder > 0:
+            cmd.extend([
+                "-ss",
+                str(remainder),
+            ])
+
+    else:
+        cmd.extend([
+            "-i",
+            input_path,
+        ])
+
+    # Duration
+    if duration and duration > 0:
+        cmd.extend([
+            "-t",
+            str(duration),
+        ])
+
+    # Video encoding
+    cmd.extend([
+        "-c:v",
+        enc,
+        "-crf",
+        str(crf),
+        "-preset",
+        preset,
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+    ])
+
+    if enc == "libx264":
+        cmd.extend([
+            "-tune",
+            "film",
+            "-profile:v",
+            "high",
+            "-level",
+            "4.2",
+        ])
+
+    # Audio
+    if include_audio:
+        cmd.extend([
+            "-c:a",
+            "aac",
+            "-b:a",
+            "256k",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+        ])
+    else:
+        cmd.append("-an")
+
+    # Video filter
+    cmd.extend([
+        "-vf",
+        vf,
+    ])
+
+    cmd.append(output_path)
+
+    print(
+        f"  🎬 Frame-accurate trim "
+        f"(CRF {crf}, preset {preset})..."
+    )
+
+    result = _run_encode(
+        cmd,
+        output_path,
+        encode_timeout,
+    )
+
+    if (
+        result.returncode == 0
+        and os.path.exists(output_path)
+        and os.path.getsize(output_path) > 1000
+    ):
+        return output_path
+
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
+    # ------------------------------------------------------------------
+    # STRATEGY 3: HIGH-QUALITY RE-ENCODE FALLBACK
+    # ------------------------------------------------------------------
+
+    res_filter = None
+
+    if resolution == "1080p":
+        res_filter = "scale=1920:-2:flags=lanczos"
+
+    elif resolution == "720p":
+        res_filter = "scale=1280:-2:flags=lanczos"
+
+    elif resolution == "480p":
+        res_filter = "scale=854:-2:flags=lanczos"
+
+    elif resolution == "360p":
+        res_filter = "scale=640:-2:flags=lanczos"
+
+    filters = []
+
+    if res_filter:
+        filters.append(res_filter)
+
+    filters.append("format=yuv420p")
+
+    if caption_filter:
+        filters.append(caption_filter)
+
+    vf = ",".join(filters) if filters else None
+
+    enc = encoder or get_best_video_encoder(
+        ffmpeg_path
+    )
+
+    cmd = [
+        ffmpeg_path,
+        "-y",
+    ]
+
+    # Input seek for faster processing
+    if start_sec and start_sec > 0:
+        cmd.extend([
+            "-ss",
+            str(start_sec),
+        ])
+
+    cmd.extend([
+        "-i",
+        input_path,
+    ])
+
+    # Output duration
+    if duration and duration > 0:
+        cmd.extend([
+            "-t",
+            str(duration),
+        ])
+
+    # Video encoding
+    cmd.extend([
+        "-c:v",
+        enc,
+        "-crf",
+        str(crf),
+        "-preset",
+        preset,
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+    ])
+
+    # Encoder-specific tuning
+    if enc == "libx264":
+        cmd.extend([
+            "-tune",
+            "film",
+            "-profile:v",
+            "high",
+            "-level",
+            "4.2",
+        ])
+
+    # Audio
+    if include_audio:
+        cmd.extend([
+            "-c:a",
+            "aac",
+            "-b:a",
+            "256k",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+        ])
+    else:
+        cmd.append("-an")
+
+    # Video filter
+    if vf:
+        cmd.extend([
+            "-vf",
+            vf,
+        ])
+
+    # Frame rate
+    if fps:
+        cmd.extend([
+            "-r",
+            str(fps),
+        ])
+
+    cmd.append(output_path)
+
+    print(
+        f"  🎬 Re-encoding trim "
+        f"(CRF {crf}, preset {preset})..."
+    )
+
+    result = _run_encode(
+        cmd,
+        output_path,
+        encode_timeout,
+    )
+
+    if result.returncode != 0:
+        raise ffmpeg_failure(
+            "cut the clip",
+            result.stderr,
+        )
+
+    if (
+        not os.path.exists(output_path)
+        or os.path.getsize(output_path) < 1000
+    ):
+        raise VideoToolError(
+            "The clip came out empty. Check that the start and end "
+            "times fall inside the video."
+        )
+
+    return output_path
+
+
+def trim_remote(
+    ffmpeg_path,
+    stream_url,
+    output_path,
+    start_sec,
+    end_sec,
+    resolution="1080p",
+    bitrate_kbps=8000,
+    fps=30,
+    crf=18,
+    preset="slow",
+    encoder=None,
+    caption_filter=None,
+    include_audio=True,
+    re_encode=False,
+):
+    """Trim a remote HTTP/HTTPS media stream.
+
+    This is intentionally a thin wrapper around ``trim_clip``.
+
+    The actual trimming engine remains centralized in ``trim_clip`` so local
+    and remote processing use the same quality, seeking, encoder and fallback
+    behavior.
+
+    ``re_encode=True`` skips the stream-copy path and goes directly to the
+    frame-accurate re-encode path.
+    """
+    if not stream_url:
+        raise ValueError(
+            "A remote stream URL is required."
+        )
+
+    if not _is_remote_input(stream_url):
+        raise ValueError(
+            "trim_remote requires an HTTP/HTTPS stream URL."
+        )
+
+    return trim_clip(
+        ffmpeg_path,
+        stream_url,
+        output_path,
+        start_sec,
+        end_sec,
+        resolution=resolution,
+        bitrate_kbps=bitrate_kbps,
+        fps=fps,
+        crf=crf,
+        preset=preset,
+        encoder=encoder,
+        caption_filter=caption_filter,
+        force_reencode=re_encode,
+        include_audio=include_audio,
+    )
+
+
+def download_remote(
+    ffmpeg_path,
+    stream_url,
+    output_path,
+    re_encode=False,
+    crf=18,
+    preset="slow",
+    encoder=None,
+    include_audio=True,
+):
+    """Download a complete remote HTTP/HTTPS media stream.
+
+    Strategy:
+
+    1. Try stream-copy first when ``re_encode`` is False.
+    2. If stream-copy fails, automatically re-encode.
+    3. If ``re_encode`` is True, skip copy and encode directly.
+
+    The caller does not need to know whether the fallback was required.
+    """
+
+    if not ffmpeg_path:
+        raise MissingToolError(
+            "FFmpeg was not found."
+        )
+
+    if not stream_url:
+        raise ValueError(
+            "A remote stream URL is required."
+        )
+
+    if not _is_remote_input(stream_url):
+        raise ValueError(
+            "download_remote requires an HTTP/HTTPS stream URL."
+        )
+
+    os.makedirs(
+        os.path.dirname(output_path) or ".",
+        exist_ok=True,
+    )
+
+    # ------------------------------------------------------------------
+    # STRATEGY 1: STREAM COPY
+    # ------------------------------------------------------------------
+
+    if not re_encode:
+        copy_cmd = [
+            ffmpeg_path,
+            "-y",
+            "-i",
+            stream_url,
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+        ]
+
+        if not include_audio:
+            copy_cmd.append("-an")
+
+        copy_cmd.append(output_path)
+
+        try:
+            result = subprocess.run(
+                copy_cmd,
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+
+            if (
+                result.returncode == 0
+                and os.path.exists(output_path)
+                and os.path.getsize(output_path) > 1000
+            ):
+                print(
+                    f"  ✅ Remote download: "
+                    f"{os.path.basename(output_path)}"
+                )
+                return output_path
+
+        except Exception:
+            pass
+
+        if os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except OSError:
+                pass
+
+    # ------------------------------------------------------------------
+    # STRATEGY 2: HIGH-QUALITY RE-ENCODE
+    # ------------------------------------------------------------------
+
+    enc = encoder or get_best_video_encoder(
+        ffmpeg_path
+    )
+
+    cmd = [
+        ffmpeg_path,
+        "-y",
+        "-i",
+        stream_url,
+        "-map",
+        "0:v:0",
+    ]
+
+    if include_audio:
+        cmd.extend([
+            "-map",
+            "0:a?",
+        ])
+    else:
+        cmd.append("-an")
+
+    cmd.extend([
+        "-c:v",
+        enc,
+        "-crf",
+        str(crf),
+        "-preset",
+        preset,
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+    ])
+
+    if enc == "libx264":
+        cmd.extend([
+            "-tune",
+            "film",
+            "-profile:v",
+            "high",
+            "-level",
+            "4.2",
+        ])
+
+    if include_audio:
+        cmd.extend([
+            "-c:a",
+            "aac",
+            "-b:a",
+            "256k",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+        ])
+
+    cmd.append(output_path)
+
+    print(
+        f"  🎬 Downloading remote stream "
+        f"(CRF {crf}, preset {preset})..."
+    )
+
+    result = _run_encode(
+        cmd,
+        output_path,
+        600,
+    )
+
+    if result.returncode != 0:
+        raise ffmpeg_failure(
+            "download the video section",
+            result.stderr,
+        )
+
+    if (
+        not os.path.exists(output_path)
+        or os.path.getsize(output_path) < 1000
+    ):
+        raise VideoToolError(
+            "The downloaded section came out empty. Check that the "
+            "start and end times fall inside the video."
+        )
+
+    print(
+        f"  ✅ Remote download complete: "
+        f"{os.path.basename(output_path)}"
+    )
+
+    return output_path
+
+
+# === HIGH QUALITY MERGE ===
+
+def _probe_streams(path):
+    """Return the settings of a file's first video and audio streams.
+
+    The result is ``{"video": {...}, "audio": {...} or None}``. It is
+    ``None`` when ffprobe is missing or cannot read the file.
+    """
+    ffprobe = find_ffprobe()
+
+    if not ffprobe:
+        return None
+
+    cmd = [
+        ffprobe,
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type,codec_name,profile,width,height,pix_fmt,"
+        "r_frame_rate,sample_aspect_ratio,sample_rate,channels",
+        "-of",
+        "json",
+        str(path),
+    ]
+
+    try:
+        run = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        data = json.loads(run.stdout or "{}")
+    except Exception:
+        return None
+
+    video = None
+    audio = None
+
+    for stream in data.get("streams", []):
+        kind = stream.get("codec_type")
+
+        if kind == "video" and video is None:
+            video = {
+                key: stream.get(key)
+                for key in (
+                    "codec_name",
+                    "profile",
+                    "width",
+                    "height",
+                    "pix_fmt",
+                    "r_frame_rate",
+                    "sample_aspect_ratio",
+                )
+            }
+
+        elif kind == "audio" and audio is None:
+            audio = {
+                key: stream.get(key)
+                for key in (
+                    "codec_name",
+                    "sample_rate",
+                    "channels",
+                )
+            }
+
+    if video is None:
+        return None
+
+    return {"video": video, "audio": audio}
+
+
+def _can_copy_merge(streams):
+    """True when every clip has the same stream settings.
+
+    The concat demuxer with ``-c copy`` joins the files without looking
+    at them. It only works when codec, size, frame rate and audio match.
+    When ffprobe could not read a clip, the answer is False.
+    """
+    if not streams or any(item is None for item in streams):
+        return False
+
+    return all(item == streams[0] for item in streams[1:])
+
+
+def _fps_from_ratio(text, default=30.0):
+    """Turn an ffprobe frame rate such as ``30000/1001`` into a float."""
+    try:
+        top, _, bottom = str(text).partition("/")
+        value = float(top) / float(bottom or 1)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return default
+
+    return value if value > 0 else default
+
+
+def _merge_length_ok(clip_paths, output_path):
+    """Check that a merged file is about as long as its parts added up.
+
+    Returns True when the lengths cannot be read, so a missing ffprobe
+    never blocks a merge.
+    """
+    expected = 0.0
+
+    for clip in clip_paths:
+        length = probe_durations(clip)["file"]
+
+        if length is None:
+            return True
+
+        expected += length
+
+    actual = probe_durations(output_path)["file"]
+
+    if actual is None:
+        return True
+
+    return abs(actual - expected) <= max(1.0, expected * 0.03)
+
+
+def merge_clips(
+    ffmpeg_path,
+    clip_paths,
+    output_path,
+    re_encode=False,
+    crf=18,
+    preset="slow",
+    encoder=None,
+):
+    """
+    Merge multiple clips into one video with zero quality loss when possible.
+
+    Strategy:
+
+    1. If every clip has the same codec, size, frame rate and audio,
+       join them with the concat demuxer and ``-c copy``. Afterwards,
+       check that the result is as long as the parts added up.
+    2. Otherwise, or if that check fails, or if ``re_encode`` is True,
+       decode every clip, bring them to one size, frame rate and audio
+       format, and re-encode them into a single file.
+    """
+    if not ffmpeg_path:
+        raise MissingToolError(
+            "FFmpeg was not found. Install it and make sure it is on "
+            "your PATH."
+        )
+
+    if not clip_paths:
+        raise ValueError("No clips to merge")
+
+    if len(clip_paths) == 1:
+        shutil.copy2(
+            clip_paths[0],
+            output_path,
+        )
+        return output_path
+
+    os.makedirs(
+        os.path.dirname(output_path) or ".",
+        exist_ok=True,
+    )
+
+    streams = [_probe_streams(clip) for clip in clip_paths]
+
+    # --- STRATEGY 1: Lossless concat demuxer ---
+    #
+    # ffmpeg's concat demuxer does not compare the clips. With different
+    # sizes, frame rates or sample rates it still exits with code 0 and
+    # writes a file whose later parts are blank or broken. So the clips
+    # are compared here first.
+
+    if not re_encode and _can_copy_merge(streams):
+        list_file = output_path + ".concat_list.txt"
+
+        try:
+            with open(
+                list_file,
+                "w",
+                encoding="utf-8",
+            ) as f:
+                for clip in clip_paths:
+                    abs_path = os.path.abspath(clip)
+
+                    # Escape single quotes in path for concat file
+                    abs_path = abs_path.replace(
+                        "'",
+                        "'\\''",
+                    )
+
+                    f.write(
+                        f"file '{abs_path}'\n"
+                    )
+
+            cmd = [
+                ffmpeg_path,
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                list_file,
+                "-c",
+                "copy",
+                "-fflags",
+                "+genpts",
+                "-movflags",
+                "+faststart",
+                output_path,
+            ]
+
+            print(
+                f"  🔗 Lossless merge "
+                f"({len(clip_paths)} clips)..."
+            )
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+
+            if (
+                result.returncode == 0
+                and os.path.exists(output_path)
+                and os.path.getsize(output_path) > 1000
+            ):
+                if _merge_length_ok(clip_paths, output_path):
+                    print(
+                        "  ✅ Lossless merge complete"
+                    )
+                    return output_path
+
+                print(
+                    "  ⚠️ The joined file is not as long as "
+                    "its parts, re-encoding instead"
+                )
+
+            else:
+                print(
+                    "  ⚠️ Concat copy failed, "
+                    "falling back to re-encode"
+                )
+
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+        finally:
+            if os.path.exists(list_file):
+                os.remove(list_file)
+
+    elif not re_encode:
+        print(
+            "  ⚠️ Clips differ in codec, size, frame rate or audio; "
+            "a lossless join would break them"
+        )
+
+    # --- STRATEGY 2: High-quality re-encode merge ---
+
+    print(
+        f"  🎬 Re-encoding merge "
+        f"({len(clip_paths)} clips)..."
+    )
+
+    enc = encoder or get_best_video_encoder(
+        ffmpeg_path
+    )
+
+    # Every clip is scaled to the first clip's size and frame rate. The
+    # concat filter refuses inputs that differ in size, and it needs the
+    # same audio format on every input.
+
+    reference = streams[0]["video"] if streams[0] else None
+
+    width = height = fps = None
+
+    if reference:
+        try:
+            width = int(reference["width"]) // 2 * 2
+            height = int(reference["height"]) // 2 * 2
+            fps = _fps_from_ratio(reference["r_frame_rate"])
+        except (TypeError, ValueError):
+            width = height = fps = None
+
+    # When ffprobe could not read a clip, assume it has audio.
+    has_audio = [
+        item is None or item["audio"] is not None
+        for item in streams
+    ]
+    any_audio = any(has_audio)
+
+    inputs = []
+
+    for clip in clip_paths:
+        inputs.extend([
+            "-i",
+            clip,
+        ])
+
+    filter_parts = []
+    joined = ""
+
+    for i, clip in enumerate(clip_paths):
+        if width and height and fps:
+            filter_parts.append(
+                f"[{i}:v:0]"
+                f"scale={width}:{height}"
+                ":force_original_aspect_ratio=decrease,"
+                f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,"
+                f"setsar=1,fps={fps:.3f},format=yuv420p"
+                f"[v{i}]"
+            )
+        else:
+            filter_parts.append(
+                f"[{i}:v:0]setsar=1[v{i}]"
+            )
+
+        joined += f"[v{i}]"
+
+        if not any_audio:
+            continue
+
+        if has_audio[i]:
+            filter_parts.append(
+                f"[{i}:a:0]aresample=48000,"
+                "aformat=sample_fmts=fltp:channel_layouts=stereo"
+                f"[a{i}]"
+            )
+        else:
+            # This clip has no sound; fill its length with silence.
+            length = probe_durations(clip)
+            seconds = length["video"] or length["file"] or 0.0
+
+            filter_parts.append(
+                "anullsrc=r=48000:cl=stereo,"
+                f"atrim=duration={seconds:.3f},"
+                f"asetpts=N/SR/TB[a{i}]"
+            )
+
+        joined += f"[a{i}]"
+
+    filter_complex = (
+        ";".join(filter_parts)
+        + ";"
+        + joined
+        + f"concat=n={len(clip_paths)}:v=1:a={1 if any_audio else 0}"
+        + ("[outv][outa]" if any_audio else "[outv]")
+    )
+
+    cmd = [
+        ffmpeg_path,
+        "-y",
+    ] + inputs + [
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[outv]",
+    ]
+
+    if any_audio:
+        cmd.extend([
+            "-map",
+            "[outa]",
+        ])
+
+    cmd.extend([
+        "-c:v",
+        enc,
+        "-crf",
+        str(crf),
+        "-preset",
+        preset,
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+    ])
+
+    if any_audio:
+        cmd.extend([
+            "-c:a",
+            "aac",
+            "-b:a",
+            "256k",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+        ])
+
+    if enc == "libx264":
+        cmd.extend([
+            "-tune",
+            "film",
+            "-profile:v",
+            "high",
+            "-level",
+            "4.2",
+        ])
+
+    cmd.append(output_path)
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+
+    if result.returncode != 0:
+        raise ffmpeg_failure(
+            "join the clips",
+            result.stderr,
+        )
+
+    if (
+        not os.path.exists(output_path)
+        or os.path.getsize(output_path) < 1000
+    ):
+        raise VideoToolError(
+            "The joined video came out empty."
+        )
+
+    return output_path
+
+
+def apply_watermark(
+    ffmpeg_path,
+    input_path,
+    output_path,
+    logo_path,
+    position="bottomright",
+    margin=20,
+    width=None,
+    opacity=1.0,
+    crf=18,
+    preset="slow",
+    encoder=None,
+):
+    """
+    Burn a logo onto a video.
+
+    This always re-encodes because a watermark changes pixels.
+
+    The watermark encode uses the input video's duration to calculate a
+    suitable timeout. This avoids the old fixed 600-second limit on longer
+    compilations.
+
+    If the encode times out, _run_encode() removes any partial output and
+    raises a VideoToolError with a user-friendly message.
+    """
+    if not ffmpeg_path:
+        raise MissingToolError(
+            "FFmpeg was not found. Install it and make sure it is on "
+            "your PATH."
+        )
+
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(
+            f"Input not found: {input_path}"
+        )
+
+    if not os.path.exists(logo_path):
+        raise FileNotFoundError(
+            f"Logo not found: {logo_path}"
+        )
+
+    os.makedirs(
+        os.path.dirname(output_path) or ".",
+        exist_ok=True,
+    )
+
+    positions = {
+        "topleft": f"{margin}:{margin}",
+        "topright": (
+            f"main_w-overlay_w-{margin}:{margin}"
+        ),
+        "bottomleft": (
+            f"{margin}:main_h-overlay_h-{margin}"
+        ),
+        "bottomright": (
+            f"main_w-overlay_w-{margin}:"
+            f"main_h-overlay_h-{margin}"
+        ),
+        "center": (
+            "(main_w-overlay_w)/2:"
+            "(main_h-overlay_h)/2"
+        ),
+    }
+
+    overlay_xy = positions.get(
+        position,
+        positions["bottomright"],
+    )
+
+    logo_filters = []
+
+    if width:
+        logo_filters.append(
+            f"scale={int(width)}:-1"
+        )
+
+    if opacity < 1.0:
+        logo_filters.append(
+            f"format=rgba,"
+            f"colorchannelmixer=aa={opacity}"
+        )
+
+    logo_chain = (
+        ",".join(logo_filters)
+        if logo_filters
+        else "null"
+    )
+
+    filter_complex = (
+        f"[1:v]{logo_chain}[logo];"
+        f"[0:v][logo]overlay={overlay_xy}[outv]"
+    )
+
+    enc = encoder or get_best_video_encoder(
+        ffmpeg_path
+    )
+
+    cmd = [
+        ffmpeg_path,
+        "-y",
+        "-i",
+        input_path,
+        "-i",
+        logo_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[outv]",
+        "-map",
+        "0:a?",
+        "-c:v",
+        enc,
+        "-crf",
+        str(crf),
+        "-preset",
+        preset,
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-c:a",
+        "copy",
+        output_path,
+    ]
+
+    # --------------------------------------------------------------
+    # Duration-aware timeout
+    # --------------------------------------------------------------
+    #
+    # Watermarking requires a complete video re-encode. Use the same
+    # duration-based timeout model as trim_clip() rather than the old
+    # fixed 600-second limit.
+    #
+    # If ffprobe cannot determine the duration, keep a conservative
+    # 600-second fallback.
+    #
+    durations = probe_durations(input_path)
+    input_duration = durations.get("file")
+
+    if input_duration:
+        encode_timeout = _encode_timeout(
+            input_duration
+        )
+    else:
+        encode_timeout = 600.0
+
+    print(
+        f"  🏷️ Watermarking ({position})..."
+    )
+
+    result = _run_encode(
+        cmd,
+        output_path,
+        encode_timeout,
+    )
+
+    if result.returncode != 0:
+        raise ffmpeg_failure(
+            "add the watermark",
+            result.stderr,
+        )
+
+    if (
+        not os.path.exists(output_path)
+        or os.path.getsize(output_path) < 1000
+    ):
+        raise VideoToolError(
+            "The video with the watermark came out empty."
+        )
+
+    print("  ✅ Watermark applied")
+
+    return output_path
+
+
+def find_caption_font():
+    """Look for a usable font file for burned-in captions."""
+    candidates = [
+        # Linux
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+
+        # macOS
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+
+        # Windows
+        r"C:\Windows\Fonts\arialbd.ttf",
+        r"C:\Windows\Fonts\arial.ttf",
+    ]
+
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+
+    return None
+
+
+def build_caption_filter(
+    text,
+    tmp_dir,
+    fontfile=None,
+    fontsize=36,
+    color="white",
+    box=True,
+    box_color="0x1E343D@0.92",
+    position="bottom",
+    margin=40,
+    uppercase=True,
+):
+    """Build a drawtext filter that burns text onto a clip.
+
+    Returns:
+        (filter_string, text_file_path)
+    """
+    if uppercase:
+        text = text.upper()
+
+    os.makedirs(
+        tmp_dir,
+        exist_ok=True,
+    )
+
+    fd, txt_path = tempfile.mkstemp(
+        suffix=".txt",
+        prefix="caption_",
+        dir=tmp_dir,
+    )
+
+    with os.fdopen(
+        fd,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        f.write(text)
+
+    positions = {
+        "bottom": (
+            "x=(w-text_w)/2:"
+            f"y=h-text_h-{margin}"
+        ),
+        "top": (
+            "x=(w-text_w)/2:"
+            f"y={margin}"
+        ),
+    }
+
+    xy = positions.get(
+        position,
+        positions["bottom"],
+    )
+
+    parts = (
+        [f"fontfile='{fontfile}'"]
+        if fontfile
+        else ["font=Sans"]
+    )
+
+    parts += [
+        f"textfile='{txt_path}'",
+        "expansion=none",
+        f"fontsize={fontsize}",
+        f"fontcolor={color}",
+        xy,
+    ]
+
+    if box:
+        parts += [
+            "box=1",
+            f"boxcolor={box_color}",
+            "boxborderw=16",
+        ]
+
+    return (
+        "drawtext=" + ":".join(parts),
+        txt_path,
+    )
+
+
+# === CSV READING ===
+
+def read_csv_entries(csv_path):
+    """Read CSV entries for auto-compiler.
+
+    Expected format:
+        player,match_id,action,start_time,end_time
+
+    Skips comment lines starting with // or # and blank lines.
+    """
+    entries = []
+
+    raw_lines = []
+
+    with open(
+        csv_path,
+        encoding="utf-8",
+    ) as f:
+        for line in f:
+            stripped = line.strip()
+
+            if (
+                not stripped
+                or stripped.startswith("//")
+                or stripped.startswith("#")
+            ):
+                continue
+
+            raw_lines.append(line)
+
+    if not raw_lines:
+        return []
+
+    reader = csv.DictReader(raw_lines)
+    fieldnames = reader.fieldnames or []
+
+    col_map = {}
+
+    for col in fieldnames:
+        col_lower = col.lower().strip()
+
+        if col_lower in (
+            "player",
+            "name",
+            "player_name",
+        ):
+            col_map["player"] = col
+
+        elif col_lower in (
+            "match_id",
+            "match",
+            "video",
+            "url",
+            "video_id",
+            "matchid",
+        ):
+            col_map["match_id"] = col
+
+        elif col_lower in (
+            "action",
+            "event",
+            "clip_name",
+            "description",
+        ):
+            col_map["action"] = col
+
+        elif col_lower in (
+            "start_time",
+            "start",
+            "starttime",
+            "begin",
+        ):
+            col_map["start_time"] = col
+
+        elif col_lower in (
+            "end_time",
+            "end",
+            "endtime",
+            "finish",
+        ):
+            col_map["end_time"] = col
+
+    # Default mapping if no recognized columns
+    if not col_map and len(fieldnames) >= 5:
+        col_map = {
+            "player": fieldnames[0],
+            "match_id": fieldnames[1],
+            "action": fieldnames[2],
+            "start_time": fieldnames[3],
+            "end_time": fieldnames[4],
+        }
+
+    for row in reader:
+        try:
+            player = row.get(
+                col_map.get(
+                    "player",
+                    "player",
+                ),
+                "",
+            ).strip()
+
+            match_id = row.get(
+                col_map.get(
+                    "match_id",
+                    "match_id",
+                ),
+                "",
+            ).strip()
+
+            action = row.get(
+                col_map.get(
+                    "action",
+                    "action",
+                ),
+                "",
+            ).strip()
+
+            start_str = row.get(
+                col_map.get(
+                    "start_time",
+                    "start_time",
+                ),
+                "",
+            ).strip()
+
+            end_str = row.get(
+                col_map.get(
+                    "end_time",
+                    "end_time",
+                ),
+                "",
+            ).strip()
+
+            if not player or not match_id:
+                continue
+
+            start = (
+                parse_time_to_seconds(start_str)
+                or 0
+            )
+
+            end = parse_time_to_seconds(
+                end_str
+            )
+
+            if end is not None and end <= start:
+                continue
+
+            entries.append({
+                "player": player,
+                "match_id": match_id,
+                "action": action or "clip",
+                "start": start,
+                "end": end,
+                "start_str": start_str or "0:00",
+                "end_str": end_str or "",
+            })
+
+        except Exception:
+            continue
+
+    return entries
+
+
+def format_size(size_bytes):
+    """Format byte size to human readable string."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+
+    elif size_bytes < 1024 * 1024 * 1024:
+        return (
+            f"{size_bytes / (1024 * 1024):.1f} MB"
+        )
+
+    else:
+        return (
+            f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+        )
+
+
+def format_duration(seconds):
+    """Format seconds to MM:SS or HH:MM:SS."""
+    if seconds is None:
+        return "00:00"
+
+    seconds = int(seconds)
+
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+
+    if h > 0:
+        return f"{h}:{m:02d}:{s:02d}"
+
+    return f"{m:02d}:{s:02d}"
+
+----- src/video_tool/errors.py -----
+"""Shared errors and plain-language error messages.
+
+This module provides:
+
+- application-specific exception classes
+- ``explain()``, which turns any exception into an ``ErrorInfo``
+- ``ffmpeg_failure()``, which turns ffmpeg's long log into one sentence
+- ``format_cli()`` and ``report_error()`` for the command line
+
+Every front end uses the same rules, so the same problem reads the same
+way in Basic, Pro, merge, the compiler and the GUI.
+
+An ``ErrorInfo`` holds text for people who are not technical. Technical
+text, such as yt-dlp's own words or the end of ffmpeg's log, goes in
+``detail``. The GUI never shows ``detail``. The command line shows it only
+for errors that Video Tool cannot explain, or when asked.
+
+Only ``report_error()`` prints. Nothing here exits, retries, or touches
+files.
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+from dataclasses import dataclass
+
+try:
+    from yt_dlp.utils import DownloadError
+except ImportError:  # pragma: no cover
+
+    class DownloadError(Exception):  # type: ignore[no-redef]
+        """Fallback used when yt-dlp is not installed."""
+
+
+class VideoToolError(RuntimeError):
+    """Base class for errors Video Tool raises on purpose.
+
+    The message is written for the person using the tool, so a front end
+    can show it as it is. It subclasses RuntimeError so existing code that
+    catches RuntimeError keeps working.
+
+    ``detail`` may hold technical text for logs and ``--verbose``. It is
+    never part of the message.
+    """
+
+    def __init__(self, *args, detail: str | None = None):
+        super().__init__(*args)
+        self.detail = detail
+
+
+class MissingToolError(VideoToolError):
+    """A program the task needs, such as ffmpeg, cannot be found."""
+
+
+class ClipLengthError(VideoToolError):
+    """A finished clip is shorter than the requested range.
+
+    ``path`` is the file that was kept, so a caller can tell the user where
+    it is. ``problems`` holds one plain sentence per stream that is short.
+    ``wanted`` stores the requested duration.
+    """
+
+    def __init__(self, path, problems, wanted):
+        self.path = path
+        self.problems = list(problems)
+        self.wanted = wanted
+
+        super().__init__(
+            "The clip does not match the range you asked for: "
+            + "; ".join(self.problems)
+            + "."
+        )
+
+
+@dataclass(frozen=True)
+class ErrorInfo:
+    """Structured information suitable for CLI or GUI presentation.
+
+    ``message`` and ``hint`` are plain text for anyone. ``cli_hint`` names
+    command-line options, so only the command line shows it. ``detail`` is
+    technical text. ``code`` is a short stable name for the kind of problem.
+    """
+
+    level: str
+    title: str
+    message: str
+    hint: str | None = None
+    code: str = "unknown"
+    detail: str | None = None
+    cli_hint: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Text helpers
+# ---------------------------------------------------------------------------
+
+_ANSI_CODES = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def clean_text(text: object) -> str:
+    """Strip colour codes and yt-dlp's bug-report request from a message."""
+
+    message = _ANSI_CODES.sub("", str(text)).strip()
+    message = message.split("; please report this issue")[0].strip()
+
+    return message.removeprefix("ERROR: ").strip()
+
+
+# ---------------------------------------------------------------------------
+# yt-dlp download errors
+# ---------------------------------------------------------------------------
+
+_LOGIN_CLI = (
+    "Pass your login with --cookies-from-browser BROWSER "
+    "or --cookies FILE."
+)
+
+# Each rule: code, lowercase phrases, level, title, message, hint, cli_hint.
+# The first rule whose phrase appears in the error wins, so order matters:
+# "confirm your age" must come before the general sign-in rule.
+_DOWNLOAD_RULES = (
+    (
+        "age_restricted",
+        ("age-restricted", "age restricted", "confirm your age"),
+        "warning",
+        "Age-restricted video",
+        "YouTube only lets signed-in viewers watch this video.",
+        "Video Tool cannot get it without your YouTube login.",
+        _LOGIN_CLI,
+    ),
+    (
+        "sign_in",
+        ("sign in to confirm", "not a bot"),
+        "warning",
+        "YouTube wants you to sign in",
+        "YouTube is asking for a login before it lets this video download.",
+        "This sometimes works if you wait a while and try again.",
+        "Or " + _LOGIN_CLI[0].lower() + _LOGIN_CLI[1:],
+    ),
+    (
+        "private",
+        ("private video", "video is private"),
+        "error",
+        "Private video",
+        "This video is private. Only its owner and people they chose "
+        "can watch it.",
+        "Ask the owner to share it with you.",
+        None,
+    ),
+    (
+        "region",
+        (
+            "available in your country",
+            "available in your region",
+            "blocked it in your country",
+            "blocked it in your region",
+        ),
+        "error",
+        "Not available in your country",
+        "YouTube blocks this video where you are.",
+        "Try a different video.",
+        None,
+    ),
+    (
+        "copyright",
+        ("copyright grounds", "copyright claim"),
+        "error",
+        "Blocked for copyright",
+        "A copyright claim blocks this video.",
+        "Try a different video.",
+        None,
+    ),
+    (
+        "not_started",
+        ("live event will begin", "premieres in"),
+        "warning",
+        "Not ready yet",
+        "This video is a live stream or premiere that has not ended.",
+        "Try again after it ends.",
+        None,
+    ),
+    (
+        "unavailable",
+        ("video unavailable", "video is unavailable", "video is not available"),
+        "error",
+        "Video not available",
+        "The video was removed, or it is blocked where you are.",
+        "Check that the link opens in your browser.",
+        None,
+    ),
+    (
+        "no_format",
+        ("requested format is not available",),
+        "warning",
+        "Quality not available",
+        "YouTube has no version of this video at the quality you picked.",
+        "Pick a lower quality and try again.",
+        "Try a lower quality, such as -q 720p.",
+    ),
+    (
+        "http_403",
+        ("http error 403",),
+        "warning",
+        "YouTube said no",
+        "YouTube refused the request. The link may have expired.",
+        "Run it again.",
+        None,
+    ),
+    (
+        "http_429",
+        ("http error 429", "too many requests"),
+        "warning",
+        "Too many requests",
+        "YouTube is limiting requests from this connection.",
+        "Wait a few minutes, then try again.",
+        None,
+    ),
+    (
+        "http_404",
+        ("http error 404",),
+        "error",
+        "Video not found",
+        "YouTube could not find this video.",
+        "Check the link.",
+        None,
+    ),
+    (
+        "disk_full",
+        ("no space left on device",),
+        "error",
+        "Disk is full",
+        "There is no space left on the disk.",
+        "Free some space or pick another folder.",
+        None,
+    ),
+    (
+        "network",
+        (
+            "unable to download webpage",
+            "unable to download api page",
+            "certificate_verify_failed",
+            "getaddrinfo failed",
+            "temporary failure in name resolution",
+            "name or service not known",
+            "network is unreachable",
+            "connection reset",
+            "connection refused",
+            "connection aborted",
+            "remote end closed connection",
+            "timed out",
+            "timeout",
+        ),
+        "warning",
+        "No connection to YouTube",
+        "Video Tool could not reach YouTube.",
+        "Check your internet connection and try again.",
+        None,
+    ),
+    (
+        "ffmpeg_stopped",
+        ("ffmpeg exited with code",),
+        "error",
+        "Video processing stopped",
+        "The program that cuts and joins video stopped with an error.",
+        "Make sure FFmpeg is installed and up to date, then try again.",
+        None,
+    ),
+)
+
+
+_YOUTUBE_LINK = re.compile(r"youtube\.com|youtu\.be", re.IGNORECASE)
+
+
+def explain_download_error(exc: BaseException) -> ErrorInfo:
+    """Explain a yt-dlp failure. Unknown ones keep yt-dlp's text as detail."""
+
+    raw = clean_text(exc)
+    lower = raw.lower()
+
+    # yt-dlp says "Unsupported URL" when no extractor fits the link. For a
+    # YouTube link that nearly always means the video ID is wrong.
+    if "is not a valid url" in lower:
+        return ErrorInfo(
+            level="error",
+            title="Link not valid",
+            message="This text is not a web address Video Tool can open.",
+            hint=(
+                "Remove any quote marks or spaces around the link, "
+                "then copy the full link again."
+            ),
+            code="invalid_link",
+            detail=raw or None,
+        )
+
+    if "unsupported url" in lower:
+        if _YOUTUBE_LINK.search(raw):
+            return ErrorInfo(
+                level="error",
+                title="Link not recognised",
+                message=(
+                    "This link does not lead to a YouTube video. "
+                    "The video ID may be wrong or cut short."
+                ),
+                hint=(
+                    "Copy the full link from your browser, "
+                    "or use Share on the video."
+                ),
+                code="bad_link",
+                detail=raw or None,
+            )
+
+        return ErrorInfo(
+            level="error",
+            title="Site not supported",
+            message="Video Tool cannot download from this site.",
+            hint="Check the link, or try a YouTube link.",
+            code="unsupported_site",
+            detail=raw or None,
+        )
+
+    for code, needles, level, title, message, hint, cli in _DOWNLOAD_RULES:
+        if any(needle in lower for needle in needles):
+            return ErrorInfo(
+                level=level,
+                title=title,
+                message=message,
+                hint=hint,
+                code=code,
+                detail=raw or None,
+                cli_hint=cli,
+            )
+
+    return ErrorInfo(
+        level="error",
+        title="Download failed",
+        message="Something went wrong while downloading this video.",
+        hint="Try again. If it keeps happening, update yt-dlp.",
+        code="download_failed",
+        detail=raw or "The download failed.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# ffmpeg failures
+# ---------------------------------------------------------------------------
+
+# (lowercase phrases in ffmpeg's log, plain reason)
+_FFMPEG_REASONS = (
+    (
+        ("invalid data found when processing input", "moov atom not found"),
+        "The video file looks damaged or incomplete.",
+    ),
+    (
+        ("no space left on device",),
+        "There is no space left on the disk.",
+    ),
+    (
+        ("permission denied",),
+        "Video Tool is not allowed to write to that folder or file.",
+    ),
+    (
+        ("no such file or directory",),
+        "A file it needed was missing or had moved.",
+    ),
+    (
+        ("unknown encoder", "encoder not found", "unrecognized option",
+         "no such filter"),
+        "This copy of FFmpeg is too old or lacks a feature Video Tool needs.",
+    ),
+    (
+        ("do not match the corresponding output link", "input link parameters"),
+        "The clips have different sizes and could not be matched.",
+    ),
+    (
+        ("matches no streams", "stream specifier"),
+        "A clip is missing the picture or sound track that was expected.",
+    ),
+    (
+        ("server returned 403", "http error 403"),
+        "The video link was refused or has expired.",
+    ),
+    (
+        ("server returned 404", "http error 404"),
+        "The video link no longer works.",
+    ),
+    (
+        (
+            "connection reset",
+            "connection timed out",
+            "connection refused",
+            "network is unreachable",
+            "name or service not known",
+        ),
+        "The internet connection dropped while the video was loading.",
+    ),
+)
+
+_FFMPEG_ERROR_WORDS = (
+    "error", "invalid", "failed", "no such", "cannot", "unable",
+    "not found", "unrecognized", "unknown", "denied", "matches no",
+    "does not", "not match",
+)
+
+
+def _ffmpeg_detail(stderr: str) -> str:
+    """Keep the few lines of ffmpeg's log that say what went wrong."""
+
+    lines = [line.strip() for line in str(stderr).splitlines()]
+    lines = [line for line in lines if line]
+
+    picked = [
+        line
+        for line in lines
+        if any(word in line.lower() for word in _FFMPEG_ERROR_WORDS)
+    ][-4:]
+
+    if not picked:
+        picked = lines[-3:]
+
+    return " | ".join(picked)[:500]
+
+
+def ffmpeg_failure(action: str, stderr: str) -> VideoToolError:
+    """Build an error from a failed ffmpeg run.
+
+    ``action`` finishes the sentence "Could not ...", for example
+    ``"join the clips"``. The long log goes in ``detail``.
+    """
+
+    lower = str(stderr).lower()
+    reason = "FFmpeg reported a problem."
+
+    for needles, plain in _FFMPEG_REASONS:
+        if any(needle in lower for needle in needles):
+            reason = plain
+            break
+
+    return VideoToolError(
+        f"Could not {action}. {reason}",
+        detail=_ffmpeg_detail(stderr),
+    )
+
+
+# ---------------------------------------------------------------------------
+# One translator for everything
+# ---------------------------------------------------------------------------
+
+
+def _name_of(exc: OSError) -> str:
+    """Name the file or folder an operating-system error is about."""
+
+    name = getattr(exc, "filename", None)
+
+    return f"'{name}'" if name else "that file or folder"
+
+
+def explain(exc: BaseException) -> ErrorInfo:
+    """Convert any exception into plain, actionable text.
+
+    ``level`` is one of ``info``, ``success``, ``warning`` or ``error``.
+    """
+
+    detail = getattr(exc, "detail", None)
+
+    # FFmpeg is missing
+    if isinstance(exc, MissingToolError):
+        return ErrorInfo(
+            level="error",
+            title="FFmpeg is missing",
+            message=str(exc) or "FFmpeg could not be found.",
+            hint="Install FFmpeg, then try again.",
+            code="missing_tool",
+            cli_hint="Make sure it is on your PATH.",
+        )
+
+    # A clip came out shorter than requested
+    if isinstance(exc, ClipLengthError):
+        path = getattr(exc, "path", None)
+
+        return ErrorInfo(
+            level="warning",
+            title="Clip is incomplete",
+            message=str(exc)
+            or "The clip is shorter than you asked for.",
+            hint=(
+                f"The incomplete file was kept at {path}."
+                if path
+                else "The incomplete file was kept so you can check it."
+            ),
+            code="clip_short",
+        )
+
+    # yt-dlp
+    if isinstance(exc, DownloadError):
+        return explain_download_error(exc)
+
+    # Something ran too long
+    if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)):
+        return ErrorInfo(
+            level="error",
+            title="Took too long",
+            message="The job ran for too long, so Video Tool stopped it.",
+            hint="Try a shorter clip, or try again.",
+            code="timeout",
+        )
+
+    # Operating-system errors. Errors Video Tool raises itself have no
+    # errno and already carry a plain message.
+    if isinstance(exc, PermissionError):
+        return ErrorInfo(
+            level="error",
+            title="Permission denied",
+            message=f"Video Tool is not allowed to use {_name_of(exc)}.",
+            hint="Choose a folder you can write to.",
+            code="permission",
+        )
+
+    if isinstance(exc, OSError) and getattr(exc, "errno", None) == 28:
+        return ErrorInfo(
+            level="error",
+            title="Disk is full",
+            message="There is no space left on the disk.",
+            hint="Free some space or pick another folder.",
+            code="disk_full",
+        )
+
+    if isinstance(exc, FileNotFoundError):
+        own_message = getattr(exc, "errno", None) is None and str(exc)
+
+        return ErrorInfo(
+            level="error",
+            title="File not found",
+            message=(
+                own_message
+                or f"Video Tool could not find {_name_of(exc)}."
+            ),
+            hint="Check that the file still exists.",
+            code="not_found",
+        )
+
+    # Errors Video Tool raises on purpose
+    if isinstance(exc, VideoToolError):
+        return ErrorInfo(
+            level="error",
+            title="Video Tool error",
+            message=str(exc) or "The job could not be finished.",
+            code="video_tool",
+            detail=detail,
+        )
+
+    # Bad input. Video Tool's own messages are already plain.
+    if isinstance(exc, ValueError):
+        return ErrorInfo(
+            level="error",
+            title="Invalid input",
+            message=str(exc) or "The input is not valid.",
+            code="invalid_input",
+        )
+
+    if isinstance(exc, OSError):
+        reason = getattr(exc, "strerror", None) or str(exc)
+
+        return ErrorInfo(
+            level="error",
+            title="File problem",
+            message=f"A file operation failed: {reason}".rstrip(": ")
+            if reason
+            else "A file operation failed.",
+            code="file_error",
+        )
+
+    # Last resort
+    return ErrorInfo(
+        level="error",
+        title="Unexpected error",
+        message="Something unexpected went wrong.",
+        hint="Try again. If it keeps happening, report the problem.",
+        code="unexpected",
+        detail=f"{type(exc).__name__}: {exc}".rstrip(": "),
+        cli_hint="Run again with --verbose for technical details.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Presentation
+# ---------------------------------------------------------------------------
+
+_SHOW_DETAIL_FOR = {"unexpected", "download_failed"}
+
+
+def format_cli(
+    info: ErrorInfo,
+    source: str | None = None,
+    *,
+    verbose: bool = False,
+) -> str:
+    """Return the lines the command line prints for an error."""
+
+    icon = "⚠️" if info.level == "warning" else "❌"
+    where = f" ({source})" if source else ""
+
+    lines = [f"{icon} {info.title}{where}", f"   {info.message}"]
+
+    advice = " ".join(
+        part for part in (info.hint, info.cli_hint) if part
+    )
+
+    if advice:
+        lines.append(f"   What to do: {advice}")
+
+    if info.detail and (verbose or info.code in _SHOW_DETAIL_FOR):
+        first = info.detail.splitlines()[0][:300]
+        lines.append(f"   Details: {first}")
+
+    return "\n".join(lines)
+
+
+def plain_message(exc: BaseException) -> str:
+    """Return the message and the advice for ``exc`` as one short text."""
+
+    info = explain(exc)
+
+    return " ".join(part for part in (info.message, info.hint) if part)
+
+
+def report_error(
+    exc: BaseException,
+    source: str | None = None,
+    *,
+    verbose: bool = False,
+) -> None:
+    """Print a plain-language error for ``exc``."""
+
+    print(format_cli(explain(exc), source, verbose=verbose))
+
+
+----- src/video_tool/version_check.py -----
+
+"""Keep yt-dlp and ffmpeg from silently going stale.
+
+yt-dlp can break against YouTube fairly often and gets patched quickly, so
+it is worth checking for updates and automatically upgrading it. yt-dlp is
+a normal pip package inside the project's own environment, making the
+upgrade a standard and reversible action.
+
+ffmpeg is different: it is a system binary, not something pip manages.
+Replacing it silently could affect other applications on the machine, so
+ffmpeg is checked and reported only. The user decides if and how to update
+it.
+
+Both checks are limited to at most once per day. Their state is stored in
+VIDEO_TOOL_CACHE_DIR, so normal runs do not pay the network-check cost.
+
+Any network or version-check failure is swallowed and reported softly. A
+version check should never be the reason a download or compile fails.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+import subprocess
+import sys
+from datetime import datetime, timedelta
+
+import requests
+
+logger = logging.getLogger(__name__)
+
+from .core import VIDEO_TOOL_CACHE_DIR, find_ffmpeg
+
+CHECK_INTERVAL_HOURS = 24
+
+STATE_PATH = VIDEO_TOOL_CACHE_DIR / "version_check.json"
+
+YT_DLP_RELEASES_URL = (
+    "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
+)
+
+FFMPEG_TAGS_URL = (
+    "https://api.github.com/repos/FFmpeg/FFmpeg/tags"
+)
+
+
+def _load_state() -> dict:
+    """Load version-check timestamps from disk."""
+
+    if not STATE_PATH.exists():
+        return {}
+
+    try:
+        with open(STATE_PATH, encoding="utf-8") as file:
+            return json.load(file)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _save_state(state: dict) -> None:
+    """Save version-check timestamps to disk."""
+
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(STATE_PATH, "w", encoding="utf-8") as file:
+        json.dump(state, file, indent=2)
+
+
+def _due_for_check(
+    state: dict,
+    key: str,
+    interval_hours: float,
+) -> bool:
+    """Return True when a dependency check is due."""
+
+    last = state.get(key)
+
+    if not last:
+        return True
+
+    try:
+        last_time = datetime.fromisoformat(last)
+    except ValueError:
+        return True
+
+    return (
+        datetime.now() - last_time
+        > timedelta(hours=interval_hours)
+    )
+
+
+def _check_yt_dlp(auto_upgrade: bool = True) -> None:
+    """Check yt-dlp and optionally upgrade it."""
+
+    import yt_dlp
+
+    installed = yt_dlp.version.__version__
+
+    try:
+        response = requests.get(
+            YT_DLP_RELEASES_URL,
+            timeout=10,
+            headers={
+                "User-Agent": "video_tool-version-check",
+            },
+        )
+        response.raise_for_status()
+
+        latest = response.json()["tag_name"].lstrip("v")
+
+    except Exception:
+        logger.debug("yt-dlp version check failed", exc_info=True)
+        print(
+            "Could not check for a newer yt-dlp (no connection to "
+            f"GitHub). Using the version you have, {installed}."
+        )
+        return
+
+    if installed == latest:
+        return
+
+    print(
+        f"[version_check] yt-dlp {installed} is behind "
+        f"latest ({latest})."
+    )
+
+    if not auto_upgrade:
+        print(
+            "[version_check] Run: "
+            "pip install --upgrade yt-dlp"
+        )
+        return
+
+    print("[version_check] Upgrading yt-dlp...")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "yt-dlp",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode == 0:
+        print(
+            f"[version_check] yt-dlp upgraded: "
+            f"{installed} -> {latest}"
+        )
+    else:
+        print(
+            "[version_check] yt-dlp upgrade failed, "
+            f"continuing with {installed}:\n"
+            f"{result.stderr.strip()}"
+        )
+
+
+def _parse_ffmpeg_version(
+    ffmpeg_path: str,
+) -> str | None:
+    """Extract the version string reported by ffmpeg."""
+
+    try:
+        result = subprocess.run(
+            [ffmpeg_path, "-version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        match = re.search(
+            r"ffmpeg version (\S+)",
+            result.stdout,
+        )
+
+        return match.group(1) if match else None
+
+    except Exception:
+        return None
+
+
+def _check_ffmpeg() -> None:
+    """Check the installed ffmpeg version without modifying it."""
+
+    ffmpeg_path = find_ffmpeg()
+
+    if not ffmpeg_path:
+        print(
+            "[version_check] No ffmpeg found on this system. "
+            "AutoCompiler needs it to trim and merge clips."
+        )
+        return
+
+    installed = _parse_ffmpeg_version(ffmpeg_path)
+
+    if not installed:
+        return
+
+    try:
+        response = requests.get(
+            FFMPEG_TAGS_URL,
+            timeout=10,
+            headers={
+                "User-Agent": "video_tool-version-check",
+            },
+        )
+        response.raise_for_status()
+
+        tags = response.json()
+        latest = (
+            tags[0]["name"].lstrip("n")
+            if tags
+            else None
+        )
+
+    except Exception:
+        logger.debug("ffmpeg version check failed", exc_info=True)
+        print(
+            "Could not check for a newer ffmpeg (no connection to "
+            f"GitHub). Using the version you have, {installed}."
+        )
+        return
+
+    if (
+        not latest
+        or installed.startswith(latest)
+        or latest.startswith(installed)
+    ):
+        return
+
+    print(
+        f"[version_check] ffmpeg {installed} may be behind "
+        f"latest ({latest}). ffmpeg is a system binary, not "
+        "auto-upgraded here — see "
+        "https://ffmpeg.org/download.html if you want to update it."
+    )
+
+
+def check_dependencies(
+    auto_upgrade_ytdlp: bool = True,
+    interval_hours: float = CHECK_INTERVAL_HOURS,
+) -> None:
+    """Check dependencies when their daily check is due."""
+
+    state = _load_state()
+    ran_any = False
+
+    if _due_for_check(
+        state,
+        "yt_dlp_checked_at",
+        interval_hours,
+    ):
+        _check_yt_dlp(auto_upgrade=auto_upgrade_ytdlp)
+        state["yt_dlp_checked_at"] = datetime.now().isoformat()
+        ran_any = True
+
+    if _due_for_check(
+        state,
+        "ffmpeg_checked_at",
+        interval_hours,
+    ):
+        _check_ffmpeg()
+        state["ffmpeg_checked_at"] = datetime.now().isoformat()
+        ran_any = True
+
+    if ran_any:
+        _save_state(state)
+
+
+----- tools/gui_entry.py -----
+"""PyInstaller entry point for the GUI build.
+
+video_tool.gui.app uses relative imports (from ..youtube import ...), which
+break if PyInstaller is pointed at that file directly -- it gets run as a
+bare script with no parent package, the same way `python app.py` would
+fail outside the package too. Pointing PyInstaller at this launcher instead
+means app.py is properly imported as a package member, so its relative
+imports resolve normally.
+"""
+from video_tool.gui.app import main
+
+if __name__ == "__main__":
+    main()
+
+
+========================================================================
+7. Other Python files (only lines near update/ffmpeg/deno/freeze)
+========================================================================
+
+----- api-backup-step1/src/video_tool/api/app.py -----
+   ...
+    5| from contextlib import asynccontextmanager
+    6| 
+    7| from fastapi import Depends, FastAPI, Header, HTTPException
+    8| from fastapi.responses import FileResponse, RedirectResponse
+    9| 
+   10| from ..core import find_ffmpeg
+   11| from .jobs import Job, JobStore, TooSoonError, UserBusyError
+   12| from .runners import make_runners
+   13| from .schemas import BasicJob
+   14| from .security import Settings, key_matches, valid_user_id
+   15| 
+   ...
+   84|     def root() -> RedirectResponse:
+   85|         return RedirectResponse("/docs")
+   86| 
+   87|     @app.get("/v1/health")
+   88|     def health() -> dict:
+   89|         return {"status": "ok", "ffmpeg": bool(find_ffmpeg())}
+   90| 
+   91|     @app.post("/v1/jobs", status_code=202)
+   92|     def create_job(body: BasicJob, user: str = Depends(who)) -> dict:
+   93|         try:
+   94|             job = store.submit(user, body.tool, body.params())
+
+----- api-backup-step1/src/video_tool/api/cli.py -----
+   ...
+   27|     try:
+   28|         import uvicorn
+   29| 
+   30|         from .app import create_app
+   31|     except ImportError:
+   32|         print('The API needs extra packages. Run: pip install -e ".[api]"')
+   33|         return 1
+   34| 
+   35|     if args.test_page:
+   36|         print("Test page is on. Open /test in a browser. Testing only.")
+   37| 
+
+----- collect_info.py -----
+   ...
+   15| 
+   16| from __future__ import annotations
+   17| 
+   18| import argparse
+   19| import hashlib
+   20| import importlib.metadata as md
+   21| import importlib.util
+   22| import os
+   23| import platform
+   24| import re
+   25| import shutil
+   26| import subprocess
+   27| import sys
+   28| import tempfile
+   29| import time
+   30| from fnmatch import fnmatch
+   31| from pathlib import Path
+   ...
+   38|     ".idea", ".vscode",
+   39| }
+   40| 
+   41| # Files printed in full (cut at MAX_FILE characters).
+   42| FULL_NAMES = {
+   43|     "pyproject.toml", "version_check.py", "core.py", "errors.py",
+   44|     "clip_source.py",
+   45| }
+   46| FULL_GLOBS = ["requirements*.txt", "*.spec", "*.bat", "*.sh"]
+   47| MAX_FILE = 80_000
+   48| 
+   49| # For every other .py file, print only lines near these words.
+   50| KEYWORDS = re.compile(
+   51|     r"remote_components|js_runtimes|deno|yt_dlp_ejs|\bejs\b|_MEIPASS|"
+   52|     r"sys\.frozen|getattr\(sys, ?[\"']frozen|version_check|find_ffmpeg|"
+   53|     r"ffmpeg_location|self_update|pip install|importlib\.metadata|"
+   54|     r"yt_dlp\.version|DownloadOptions\(|cache_dir|platformdirs|appdirs|"
+   55|     r"XDG|LOCALAPPDATA|user_data|data_dir|subprocess",
+   56|     re.I,
+   57| )
+   58| 
+   59| REDACT_RULES = [
+   60|     (re.compile(
+   ...
+   89|     print(f"  {title}")
+   90| 
+   91| 
+   92| def run(cmd: list[str], timeout: int = 60) -> str:
+   93|     try:
+   94|         proc = subprocess.run(
+   95|             cmd, capture_output=True, text=True, timeout=timeout,
+   96|             errors="replace",
+   97|         )
+   98|         return (proc.stdout + proc.stderr).strip()
+   99|     except FileNotFoundError:
+  100|         return f"<not found: {cmd[0]}>"
+  101|     except subprocess.TimeoutExpired as exc:
+  102|         part = exc.stdout or ""
+  103|         if isinstance(part, bytes):
+  104|             part = part.decode("utf-8", "replace")
+  105|         return f"<timed out after {timeout}s>\n{part}"
+  106|     except Exception as exc:  # noqa: BLE001
+   ...
+  136| 
+  137| 
+  138| def tools_info() -> None:
+  139|     section("2. Tools on PATH")
+  140|     for name, arg in [
+  141|         ("deno", "--version"), ("node", "--version"), ("bun", "--version"),
+  142|         ("ffmpeg", "-version"), ("yt-dlp", "--version"),
+  143|         ("pyinstaller", "--version"),
+  144|     ]:
+  145|         path = shutil.which(name)
+  146|         if not path:
+   ...
+  150|         add(f"{name}: {path}  ->  {' | '.join(first)}")
+  151| 
+  152| 
+  153| def package_info() -> None:
+  154|     section("3. Python packages (this interpreter)")
+  155|     for name in ("yt-dlp", "yt-dlp-ejs", "pyinstaller", "customtkinter",
+  156|                  "requests", "filelock", "video-tool"):
+  157|         try:
+  158|             add(f"{name}: {md.version(name)}")
+  159|         except md.PackageNotFoundError:
+  160|             add(f"{name}: NOT INSTALLED")
+  161|     spec = importlib.util.find_spec("yt_dlp_ejs")
+  162|     add(f"yt_dlp_ejs importable: {bool(spec)} "
+  163|         f"{spec.origin if spec and spec.origin else ''}")
+  164|     add()
+  165|     add("pip list:")
+  166|     add(run([sys.executable, "-m", "pip", "list", "--format=freeze"]))
+  167| 
+  168| 
+  169| def cache_info() -> None:
+  170|     section("4. yt-dlp cache and config")
+  171|     candidates: list[Path] = []
+  172|     if os.environ.get("XDG_CACHE_HOME"):
+  173|         candidates.append(Path(os.environ["XDG_CACHE_HOME"]) / "yt-dlp")
+  174|     candidates.append(Path.home() / ".cache" / "yt-dlp")
+  175|     if os.environ.get("LOCALAPPDATA"):
+  176|         candidates.append(Path(os.environ["LOCALAPPDATA"]) / "yt-dlp")
+  177|     seen: set[Path] = set()
+  178|     for cache in candidates:
+  179|         if cache in seen:
+  180|             continue
+  181|         seen.add(cache)
+   ...
+  251|     for rel in files:
+  252|         if is_full(rel):
+  253|             add(f"\n----- {rel} -----")
+  254|             add(read(rel))
+  255| 
+  256|     section("7. Other Python files (only lines near update/ffmpeg/deno/freeze)")
+  257|     for rel in files:
+  258|         if rel.suffix == ".py" and not is_full(rel) and "tests" not in rel.parts:
+  259|             text = keyword_lines(read(rel))
+  260|             if text:
+  261|                 add(f"\n----- {rel} -----")
+   ...
+  300|     add(run(["git", "remote", "-v"]))
+  301|     add("\nrecent tags:")
+  302|     add("\n".join(run(["git", "tag", "--sort=-creatordate"]).splitlines()[:8]))
+  303| 
+  304| 
+  305| MARKERS = [b"yt_dlp_ejs", b"yt-dlp-ejs", b".min.js"]
+  306| 
+  307| 
+  308| def scan_binary(path: Path) -> tuple[str, dict[bytes, int]]:
+  309|     counts = {m: 0 for m in MARKERS}
+  310|     sha = hashlib.sha256()
+   ...
+  350|     with tempfile.TemporaryDirectory() as tmp:
+  351|         cases = [
+  352|             ("A. your normal cache", []),
+  353|             ("B. empty cache (like a new user)",
+  354|              ["--cache-dir", f"{tmp}/b"]),
+  355|             ("C. empty cache + --remote-components ejs:github",
+  356|              ["--cache-dir", f"{tmp}/c", "--remote-components", "ejs:github"]),
+  357|         ]
+  358|         for label, extra in cases:
+  359|             print(f"    running {label} ...")
+  360|             out = run(base + extra + [url], timeout=150)
+  361|             failed = (
+
+----- src/video_tool/api/__init__.py -----
+   ...
+    1| """Web API for Video Tool. Needs: pip install -e ".[api]"."""
+
+----- src/video_tool/api/app.py -----
+   ...
+    8| from contextlib import asynccontextmanager
+    9| 
+   10| from fastapi import Depends, FastAPI, Header, HTTPException, Request
+   11| from fastapi.responses import FileResponse, RedirectResponse
+   12| 
+   13| from ..core import find_ffmpeg
+   14| from .hardening import Hardening
+   15| from .jobs import Job, JobStore, TooSoonError, UserBusyError
+   16| from .ratelimit import CallLimiter, KeyGuard
+   17| from .runners import make_runners
+   18| from .schemas import BasicJob
+   ...
+  154| 
+  155|     @app.get("/v1/health")
+  156|     def health(x_api_key: str = Header(default="")) -> dict:
+  157|         # Without the key, the reply says nothing about the server.
+  158|         if key_ok(x_api_key, settings):
+  159|             return {"status": "ok", "ffmpeg": bool(find_ffmpeg())}
+  160| 
+  161|         return {"status": "ok"}
+  162| 
+  163|     @app.post("/v1/jobs", status_code=202)
+  164|     def create_job(body: BasicJob, user: str = Depends(who)) -> dict:
+
+----- src/video_tool/api/cli.py -----
+   ...
+   48|     try:
+   49|         import uvicorn
+   50| 
+   51|         from .app import create_app
+   52|     except ImportError:
+   53|         print('The API needs extra packages. Run: pip install -e ".[api]"')
+   54|         return 1
+   55| 
+   56|     if args.test_page:
+   57|         print("Test page is on. Open /test in a browser. Testing only.")
+   58| 
+
+----- src/video_tool/api/runners.py -----
+   ...
+   22|             total = data.get("total_bytes") or data.get("total_bytes_estimate")
+   23| 
+   24|             if total:
+   25|                 progress(min(data.get("downloaded_bytes", 0) / total, 0.99))
+   26| 
+   27|         options = DownloadOptions(
+   28|             output_dir=str(folder),
+   29|             format_type=params["format"],
+   30|             quality=params["quality"],
+   31|             cookie_file=settings.cookie_file,
+   32|             progress_hook=hook,
+
+----- src/video_tool/csv_prep.py -----
+   ...
+   18| from pathlib import Path
+   19| 
+   20| from filelock import FileLock, Timeout
+   21| 
+   22| from .core import (
+   23|     VIDEO_TOOL_CACHE_DIR,
+   24|     parse_time_to_seconds,
+   25|     seconds_to_timestamp,
+   26| )
+   27| 
+   28| PAD_BEFORE = 0.5
+   ...
+   31| LOCK_TIMEOUT = 10
+   32| MAX_MATCH_HOURS = 4
+   33| 
+   34| # Application-managed registry state belongs with the other Video Tool
+   35| # cache files rather than in the current working directory.
+   36| DEFAULT_REGISTRY_PATH = VIDEO_TOOL_CACHE_DIR / "matches.csv"
+   37| 
+   38| 
+   39| # Keep these synonym sets aligned with core.read_csv_entries().
+   40| _START_SYNONYMS = {
+   41|     "start_time",
+
+----- src/video_tool/experiments/ai_finder/ai_finder.py -----
+   ...
+    8|     player,match_id,action,start_time,end_time
+    9| 
+   10| Feed that CSV straight into auto_compiler.py -- no changes needed there.
+   11| 
+   12| Requirements:
+   13|     pip install google-genai
+   14|     export GEMINI_API_KEY=your_key_here
+   15| 
+   16| Examples:
+   17|     # Local file, one description
+   18|     python -m video_tool.experiments.ai_finder.ai_finder \
+   ...
+   38| import argparse
+   39| import csv
+   40| import json
+   41| import os
+   42| import re
+   43| import subprocess
+   44| import time
+   45| 
+   46| try:
+   47|     from dotenv import load_dotenv
+   48| 
+   ...
+   51|     pass
+   52| 
+   53| from ...clip_source import fetch_source
+   54| from ...core import (
+   55|     extract_video_id,
+   56|     find_ffmpeg,
+   57|     find_ffprobe,
+   58|     seconds_to_timestamp,
+   59| )
+   60| from ...sources import detect_source
+   61| from ...versions.auto_compiler import AutoCompiler
+   ...
+   98|             "-of",
+   99|             "json",
+  100|             video_path,
+  101|         ]
+  102| 
+  103|         result = subprocess.run(
+  104|             cmd,
+  105|             capture_output=True,
+  106|             text=True,
+  107|             timeout=15,
+  108|         )
+   ...
+  173|         print(
+  174|             f"  Cutting chunk {idx}: "
+  175|             f"{seconds_to_timestamp(offset)} onward..."
+  176|         )
+  177| 
+  178|         result = subprocess.run(
+  179|             cmd,
+  180|             capture_output=True,
+  181|             text=True,
+  182|             timeout=300,
+  183|         )
+   ...
+  461| 
+  462|     print(
+  463|         f"Downloading: {video_id or video_source}"
+  464|     )
+  465| 
+  466|     options = DownloadOptions(
+  467|         output_dir=DEFAULT_DOWNLOAD_FOLDER,
+  468|         format_type="MP4",
+  469|         quality=quality,
+  470|         cookie_browser=cookie_browser,
+  471|         cookie_file=cookie_file,
+  472|         bypass_no_auth=True,
+  473|         remote_components=["ejs:github"],
+  474|     )
+  475| 
+  476|     try:
+  477|         path, _ = fetch_source(
+  478|             video_source,
+   ...
+  509|     keep_chunks=False,
+  510| ):
+  511|     if not HAS_GENAI:
+  512|         print(
+  513|             "google-genai is not installed. "
+  514|             "Run: pip install google-genai"
+  515|         )
+  516|         return None
+  517| 
+  518|     api_key = os.environ.get(
+  519|         "GEMINI_API_KEY"
+   ...
+  528| 
+  529|     client = genai.Client(
+  530|         api_key=api_key
+  531|     )
+  532| 
+  533|     ffmpeg_path = find_ffmpeg()
+  534| 
+  535|     if not ffmpeg_path:
+  536|         print(
+  537|             "ffmpeg not found. It's needed to split "
+  538|             "long videos into chunks."
+
+----- src/video_tool/gdrive/trimmer.py -----
+   ...
+   20| 
+   21| from ..core import (
+   22|     VideoToolError,
+   23|     check_clip_length,
+   24|     download_remote,
+   25|     find_ffmpeg,
+   26|     trim_remote,
+   27| )
+   28| from ..errors import plain_message
+   29| from .parser import GDriveError, get_drive_stream_url
+   30| 
+   ...
+   60|             Path(temp_dir)
+   61|             if temp_dir
+   62|             else Path.cwd()
+   63|         )
+   64| 
+   65|         self.ffmpeg = ffmpeg_path or find_ffmpeg()
+   66|         self.ffprobe = ffprobe_path
+   67| 
+   68|         if not self.ffmpeg:
+   69|             raise VideoToolError(
+   70|                 "FFmpeg was not found. Install FFmpeg and make sure it "
+
+----- src/video_tool/gui/app.py -----
+   ...
+  798|                 "Cannot use output folder %s", output_dir, exc_info=True
+  799|             )
+  800|             self.notify.report(explain(exc))
+  801|             return
+  802| 
+  803|         options = DownloadOptions(
+  804|             output_dir=output_dir,
+  805|             format_type=format_type,
+  806|             quality=quality,
+  807|             ffmpeg_location=self._ffmpeg_path,
+  808|         )
+  809| 
+  810|         self._set_busy(True)
+  811| 
+  812|         self.progress.set(0)
+
+----- src/video_tool/gui/bundled_deps.py -----
+   ...
+    1| """Manages a private, app-owned copy of yt-dlp and ffmpeg for the GUI app.
+    2| 
+    3| This is deliberately separate from version_check.py, which checks the
+    4| SYSTEM yt-dlp/ffmpeg the CLI suite relies on, and only ever warns about
+    5| ffmpeg since it's outside pip's control. Everything in this module lives
+    6| in the GUI app's own private folder and never touches a system-wide
+    7| install, so it's safe to download and replace automatically.
+    8| 
+    9| A frozen executable can't `pip install --upgrade` itself -- there's no
+   10| live Python environment inside a compiled bundle to upgrade. So instead of
+   11| pip-upgrading yt-dlp the way the CLI does, this downloads yt-dlp's own
+   12| prebuilt standalone executable and calls it as a subprocess -- the same
+   13| way ffmpeg has always been treated in this project.
+   14| 
+   15| Downloads always go through GitHub's stable "latest release" redirect
+   16| (github.com/OWNER/REPO/releases/latest/download/ASSET), never the
+   17| api.github.com REST endpoint. That distinction matters: the API is capped
+   ...
+   26| import json
+   27| import logging
+   28| import platform
+   29| import shutil
+   30| import stat
+   31| import subprocess
+   32| import tarfile
+   33| import zipfile
+   34| from collections.abc import Callable
+   35| from datetime import datetime, timedelta
+   36| from pathlib import Path
+   ...
+   41| 
+   42| ProgressCallback = Callable[[str], None] | None
+   43| 
+   44| BUNDLE_DIR = Path.home() / ".video-tool-gui" / "bin"
+   45| STATE_PATH = Path.home() / ".video-tool-gui" / "check_state.json"
+   46| VERSION_CHECK_INTERVAL_HOURS = 24
+   47| 
+   48| # Stable direct-download links -- never rate-limited, unlike api.github.com.
+   49| _YTDLP_ASSET_BY_OS = {
+   50|     "Windows": "yt-dlp.exe",
+   51|     "Linux": "yt-dlp_linux",
+   ...
+  103|     last = state.get(key)
+  104|     if not last:
+  105|         return True
+  106|     try:
+  107|         return datetime.now() - datetime.fromisoformat(last) > timedelta(
+  108|             hours=VERSION_CHECK_INTERVAL_HOURS)
+  109|     except ValueError:
+  110|         return True
+  111| 
+  112| 
+  113| def _download_direct(url: str, target: Path,
+   ...
+  176|     try:
+  177|         resp = requests.get(YTDLP_API_URL, timeout=10,
+  178|                              headers={"User-Agent": "video-tool-gui"})
+  179|         resp.raise_for_status()
+  180|         latest_tag = resp.json()["tag_name"]
+  181|         result = subprocess.run([str(target), "--version"],
+  182|                                  capture_output=True, text=True, timeout=10)
+  183|         installed = result.stdout.strip()
+  184|         if installed == latest_tag:
+  185|             return target  # already current
+  186|         _report(progress_callback, f"yt-dlp {installed} -> {latest_tag}, updating...")
+
+----- src/video_tool/versions/auto_compiler.py -----
+   ...
+   76|     VideoToolError,
+   77|     apply_watermark,
+   78|     build_caption_filter,
+   79|     extract_video_id,
+   80|     find_caption_font,
+   81|     find_ffmpeg,
+   82|     load_cache,
+   83|     merge_clips,
+   84|     read_csv_entries,
+   85|     resolve_cached_file,
+   86|     trim_clip,
+   ...
+   88| from ..csv_prep import get_compiler_csv, write_manifests
+   89| from ..errors import report_error
+   90| from ..gdrive.parser import GDriveError
+   91| from ..gdrive.trimmer import GDriveTrimmer
+   92| from ..sources import detect_source
+   93| from ..version_check import check_dependencies
+   94| 
+   95| logger = logging.getLogger(__name__)
+   96| 
+   97| 
+   98| DEFAULT_OUTPUT_FOLDER = os.path.join(
+   ...
+  340| 
+  341|         self._batch_counts: dict[str, int] = {}
+  342| 
+  343|         self.cache = load_cache()
+  344| 
+  345|         self.ffmpeg_path = find_ffmpeg()
+  346| 
+  347|         self.temp_clips: list[str] = []
+  348| 
+  349|         self._stats_lock = threading.Lock()
+  350|         self._temp_lock = threading.Lock()
+   ...
+  579|                 return None
+  580| 
+  581|             try:
+  582|                 from ..youtube import DownloadOptions
+  583| 
+  584|                 options = DownloadOptions(
+  585|                     output_dir=self.download_folder,
+  586|                     format_type="MP4",
+  587|                     quality=self.quality,
+  588|                     cookie_browser=(
+  589|                         self.cookie_browser
+  590|                     ),
+  591|                     cookie_file=self.cookie_file,
+  592|                     bypass_no_auth=(
+  593|                         self.bypass_no_auth
+  594|                     ),
+  595|                     remote_components=[
+  596|                         "ejs:github"
+  597|                     ],
+  598|                 )
+  599| 
+  600|                 # Check whether the complete source already exists
+  601|                 # before asking the shared source layer to fetch it.
+   ...
+  625|                     options,
+  626|                     no_cache=not self.use_cache,
+  627|                     full_download=True,
+  628|                     keep_original=True,
+  629|                     attempts=self.range_attempts,
+  630|                     cache_directories=[
+  631|                         self.download_folder
+  632|                     ],
+  633|                 )
+  634| 
+  635|                 if source_path:
+   ...
+  823|             f"{entry['end_str']}"
+  824|         )
+  825| 
+  826|         from ..youtube import DownloadOptions
+  827| 
+  828|         options = DownloadOptions(
+  829|             output_dir=temp_folder,
+  830|             format_type="MP4",
+  831|             quality=self.quality,
+  832|             cookie_browser=self.cookie_browser,
+  833|             cookie_file=self.cookie_file,
+  834|             bypass_no_auth=self.bypass_no_auth,
+  835|             remote_components=[
+  836|                 "ejs:github"
+  837|             ],
+  838|         )
+  839| 
+  840|         fetched_path, _ = fetch_source(
+  841|             url,
+   ...
+  845|             options,
+  846|             no_cache=not self.use_cache,
+  847|             full_download=False,
+  848|             keep_original=True,
+  849|             attempts=self.range_attempts,
+  850|             cache_directories=[
+  851|                 self.download_folder
+  852|             ],
+  853|         )
+  854|         fetched = str(fetched_path)
+  855| 
+
+----- src/video_tool/versions/merge_tool.py -----
+   ...
+   23|     fetch_clip,
+   24|     parse_segment,
+   25| )
+   26| from ..core import (
+   27|     VideoToolError,
+   28|     find_ffmpeg,
+   29|     is_valid_youtube_url,
+   30|     merge_clips,
+   31| )
+   32| from ..errors import report_error
+   33| from ..youtube import DownloadOptions
+   ...
+  204|         start, end = parse_segment(args.start, args.end)
+  205|     except ValueError as exc:
+  206|         print(f"Error: {exc}")
+  207|         return EXIT_USAGE
+  208| 
+  209|     ffmpeg = find_ffmpeg()
+  210| 
+  211|     if not ffmpeg:
+  212|         print(
+  213|             "Error: ffmpeg is needed to merge videos, but it was not found. "
+  214|             "Install ffmpeg and make sure it is on your PATH."
+   ...
+  223|         staging.mkdir(parents=True, exist_ok=True)
+  224|     except OSError as exc:
+  225|         report_error(exc, str(output.parent))
+  226|         return EXIT_FAILED
+  227| 
+  228|     options = DownloadOptions(
+  229|         output_dir=str(staging),
+  230|         format_type="MP4",
+  231|         quality=args.quality,
+  232|         cookie_browser=args.cookie_browser,
+  233|         cookie_file=args.cookie_file,
+
+----- src/video_tool/versions/video_tool_basic.py -----
+   ...
+   61|             "No format given and no terminal to ask on. "
+   62|             "Use -f MP4 or -f MP3."
+   63|         )
+   64|         return 1
+   65| 
+   66|     options = DownloadOptions(
+   67|         output_dir=str(output),
+   68|         format_type=format_type,
+   69|         quality=args.quality,
+   70|         cookie_browser=args.cookie_browser,
+   71|         cookie_file=args.cookie_file,
+   ...
+   84|                 None,
+   85|                 None,
+   86|                 options,
+   87|                 full_download=True,
+   88|                 keep_original=True,
+   89|                 cache_directories=[output],
+   90|             )
+   91|         except Exception as exc:
+   92|             report_error(exc, url)
+   93|             continue
+   94| 
+
+----- src/video_tool/versions/video_tool_pro.py -----
+   ...
+  145|     output_dir: Path,
+  146|     format_type: str,
+  147| ) -> DownloadOptions:
+  148|     """Create DownloadOptions from parsed CLI arguments."""
+  149| 
+  150|     return DownloadOptions(
+  151|         output_dir=str(output_dir),
+  152|         format_type=format_type,
+  153|         quality=args.quality,
+  154|         cookie_browser=args.cookie_browser,
+  155|         cookie_file=args.cookie_file,
+
+----- src/video_tool/youtube.py -----
+   ...
+   27| 
+   28| from .core import (
+   29|     MissingToolError,
+   30|     VideoToolError,
+   31|     extract_video_id,
+   32|     find_ffmpeg,
+   33|     project_path,
+   34|     trim_label,
+   35| )
+   36| from .errors import explain_download_error
+   37| 
+   ...
+   75|     quality: str = "Best"
+   76|     cookie_browser: str | None = None
+   77|     cookie_file: str | None = None
+   78|     bypass_no_auth: bool = False
+   79|     progress_hook: ProgressHook | None = None
+   80|     remote_components: list[str] | None = None
+   81|     ffmpeg_location: str | None = None
+   82| 
+   83|     # Range download. Leave both as None to fetch the whole video.
+   84|     section_start: float | None = None
+   85|     section_end: float | None = None
+   86| 
+   ...
+  111| 
+  112| 
+  113| def _ffmpeg_available(options: DownloadOptions) -> bool:
+  114|     """Return True when yt-dlp will be able to find ffmpeg."""
+  115| 
+  116|     if options.ffmpeg_location:
+  117|         return Path(options.ffmpeg_location).expanduser().exists()
+  118| 
+  119|     return find_ffmpeg() is not None
+  120| 
+  121| 
+  122| def _section_bounds(
+  123|     options: DownloadOptions,
+  124| ) -> tuple[float, float]:
+   ...
+  333|     if options.progress_hook:
+  334|         ydl_options["progress_hooks"] = [
+  335|             options.progress_hook
+  336|         ]
+  337| 
+  338|     if options.remote_components is not None:
+  339|         ydl_options["remote_components"] = options.remote_components
+  340| 
+  341|     # Only set when explicitly supplied, for example by the GUI's bundled
+  342|     # binary. Otherwise yt-dlp continues using ffmpeg from PATH.
+  343|     if options.ffmpeg_location:
+  344|         ydl_options["ffmpeg_location"] = (
+  345|             options.ffmpeg_location
+  346|         )
+  347| 
+  348|     _apply_auth_options(
+  349|         ydl_options,
+  350|         options,
+   ...
+  438|     options = {
+  439|         "quiet": True,
+  440|         "no_warnings": True,
+  441|     }
+  442| 
+  443|     temp_options = DownloadOptions(
+  444|         output_dir=".",
+  445|         cookie_browser=cookie_browser,
+  446|         cookie_file=cookie_file,
+  447|     )
+  448| 
+
+========================================================================
+8. Config (secret values hidden)
+========================================================================
+.env: variable names only -> VT_API_KEY, VT_API_WORK, VT_API_JOB_TIMEOUT
+.env.example: variable names only -> VT_API_KEY
+api-backup-step1/.env.example: variable names only -> VT_API_KEY
+youtube_cookies.txt: 45539 bytes, first line: '# Netscape HTTP Cookie File' (contents not printed)
+
+========================================================================
+9. Git
+========================================================================
+last commits:
+4d9d26d Plain error messages, link cleaning, top-centre toasts
+82d1133 Merge branch 'main' of https://github.com/tisini-tech/tisini-video-tool
+1fff120 	modified:   .github/workflows/build-gui.yml
+c8bfac7 Delete .github/workflows/main.yml
+bf829c6 Remove unnecessary YAML code block from workflow
+e11e646 Merge branch 'main' of https://github.com/tisini-tech/tisini-video-tool
+80d3a65 	modified:   .github/workflows/build-gui.yml
+979316d Add GitHub Actions workflow for GUI build
+
+status:
+M pyproject.toml
+ M src/video_tool/versions/auto_compiler.py
+?? "Basic analysis [SA_tJ3f7tnY].f299.mp4.part"
+?? api-backup-step1/
+?? api-dump.txt
+?? api-dump2.txt
+?? collect_info.py
+?? docs/
+?? src/video_tool/api/
+?? tests/api/
+
+remotes:
+origin	https://github.com/tisini-tech/tisini-video-tool (fetch)
+origin	https://github.com/tisini-tech/tisini-video-tool (push)
+
+recent tags:
+stable-before-api
+v1.0.1
+v1.0.0
+v1.0.0-gui
+
+========================================================================
+10. Release binaries (what is packed inside)
+========================================================================
+
+/home/lab/Downloads/video-tool-gui-linux
+  size: 36487432 bytes   modified: 2026-09-12 17:32
+  sha256: 2c527058611791bba60464dd903be98c45cda75ed578dac0ff30b6c2039d739b
+  contains 'yt_dlp_ejs': 0 time(s)
+  contains 'yt-dlp-ejs': 0 time(s)
+  contains '.min.js': 0 time(s)
+
+/home/lab/Downloads/video-tool-gui-linux-1
+  size: 36578536 bytes   modified: 2026-10-07 22:07
+  sha256: 3060061be78887b4f96cf6b043d7d0b1ef251e09136915da80a23eec2e41a9e4
+  contains 'yt_dlp_ejs': 0 time(s)
+  contains 'yt-dlp-ejs': 0 time(s)
+  contains '.min.js': 0 time(s)
+
+========================================================================
+11. yt-dlp test runs (network, up to 7 minutes)
+========================================================================
+
+----- A. your normal cache -----
+result: FAILED   n-challenge failed: False
+[youtube] Extracting URL: https://youtu.be/SA_tJ3f7tnY
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[debug] Command-line config: ['-v', '-s', '--no-playlist', 'https://youtu.be/SA_tJ3f7tnY']
+[debug] Encodings: locale UTF-8, fs utf-8, pref UTF-8, out utf-8 (No ANSI), error utf-8 (No ANSI), screen utf-8 (No ANSI)
+[debug] yt-dlp version stable@2026.08.19 from yt-dlp/yt-dlp [594bd50c2] (pip)
+[debug] Python 3.14.8 (CPython x86_64 64bit) - Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 (OpenSSL 3.5.9 29 Sep 2026, glibc 2.43)
+[debug] exe versions: ffmpeg 8.1.3 (fdk,setts), ffprobe 8.1.3
+[debug] Optional libraries: certifi-2026.07.22, requests-2.34.2, sqlite3-3.51.2, urllib3-2.7.0
+[debug] JS runtimes: deno-2.9.4
+[debug] Proxy map: {}
+[debug] Request Handlers: urllib, requests
+[debug] Plugin directories: none
+[debug] Loaded 1744 extractors
+[debug] [youtube] [pot] PO Token Providers: none
+[debug] [youtube] [pot] PO Token Cache Providers: memory
+[debug] [youtube] [pot] PO Token Cache Spec Providers: webpo
+[debug] [youtube] [jsc] JS Challenge Providers: bun (unavailable), deno, node (unavailable), quickjs (unavailable)
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (1/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (2/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (3/3)...
+WARNING: [youtube] SA_tJ3f7tnY: Unable to download webpage: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable (caused by TransportError("HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable")). Giving up after 3 retries
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (1/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (2/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (3/3)...
+ERROR: [youtube] SA_tJ3f7tnY: Unable to download API page: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable (caused by TransportError("HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/common.py", line 765, in extract
+    ie_result = self._real_extract(url)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3935, in _real_extract
+    webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
+                                                                                                ~~~~~~~~~~~~~~~~~~~~~^
+        url, smuggled_data, webpage_url, self._webpage_client, video_id)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3916, in _initial_extract
+    initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3894, in _download_initial_data
+    initial_data = self._extract_response(
+        item_id=video_id, ep='next', fatal=False,
+        ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+   ... 88 lines cut ...
+          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/util/util.py", line 39, in reraise
+    raise value
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 788, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 1106, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connection.py", line 219, in _new_conn
+    raise NewConnectionError(
+        self, f"Failed to establish a new connection: {e}"
+    ) from e
+urllib3.exceptions.NewConnectionError: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/common.py", line 907, in _request_webpage
+    return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 4304, in urlopen
+    return self._request_director.send(req)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/common.py", line 117, in send
+    response = handler.send(request)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/_helper.py", line 194, in wrapper
+    return func(self, *args, **kwargs)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/common.py", line 359, in send
+    return self._send(request)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/_requests.py", line 352, in _send
+    raise TransportError(cause=e) from e
+yt_dlp.networking.exceptions.TransportError: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable
+
+----- B. empty cache (like a new user) -----
+result: FAILED   n-challenge failed: False
+[youtube] Extracting URL: https://youtu.be/SA_tJ3f7tnY
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[debug] Command-line config: ['-v', '-s', '--no-playlist', '--cache-dir', '/tmp/tmpadu1850l/b', 'https://youtu.be/SA_tJ3f7tnY']
+[debug] Encodings: locale UTF-8, fs utf-8, pref UTF-8, out utf-8 (No ANSI), error utf-8 (No ANSI), screen utf-8 (No ANSI)
+[debug] yt-dlp version stable@2026.08.19 from yt-dlp/yt-dlp [594bd50c2] (pip)
+[debug] Python 3.14.8 (CPython x86_64 64bit) - Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 (OpenSSL 3.5.9 29 Sep 2026, glibc 2.43)
+[debug] exe versions: ffmpeg 8.1.3 (fdk,setts), ffprobe 8.1.3
+[debug] Optional libraries: certifi-2026.07.22, requests-2.34.2, sqlite3-3.51.2, urllib3-2.7.0
+[debug] JS runtimes: deno-2.9.4
+[debug] Proxy map: {}
+[debug] Request Handlers: urllib, requests
+[debug] Plugin directories: none
+[debug] Loaded 1744 extractors
+[debug] [youtube] [pot] PO Token Providers: none
+[debug] [youtube] [pot] PO Token Cache Providers: memory
+[debug] [youtube] [pot] PO Token Cache Spec Providers: webpo
+[debug] [youtube] [jsc] JS Challenge Providers: bun (unavailable), deno, node (unavailable), quickjs (unavailable)
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (1/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (2/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (3/3)...
+WARNING: [youtube] SA_tJ3f7tnY: Unable to download webpage: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable (caused by TransportError("HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable")). Giving up after 3 retries
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (1/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (2/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (3/3)...
+ERROR: [youtube] SA_tJ3f7tnY: Unable to download API page: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable (caused by TransportError("HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/common.py", line 765, in extract
+    ie_result = self._real_extract(url)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3935, in _real_extract
+    webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
+                                                                                                ~~~~~~~~~~~~~~~~~~~~~^
+        url, smuggled_data, webpage_url, self._webpage_client, video_id)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3916, in _initial_extract
+    initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3894, in _download_initial_data
+    initial_data = self._extract_response(
+        item_id=video_id, ep='next', fatal=False,
+        ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+   ... 88 lines cut ...
+          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/util/util.py", line 39, in reraise
+    raise value
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 788, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 1106, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connection.py", line 219, in _new_conn
+    raise NewConnectionError(
+        self, f"Failed to establish a new connection: {e}"
+    ) from e
+urllib3.exceptions.NewConnectionError: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/common.py", line 907, in _request_webpage
+    return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 4304, in urlopen
+    return self._request_director.send(req)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/common.py", line 117, in send
+    response = handler.send(request)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/_helper.py", line 194, in wrapper
+    return func(self, *args, **kwargs)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/common.py", line 359, in send
+    return self._send(request)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/_requests.py", line 352, in _send
+    raise TransportError(cause=e) from e
+yt_dlp.networking.exceptions.TransportError: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable
+
+----- C. empty cache + --remote-components ejs:github -----
+result: FAILED   n-challenge failed: False
+[youtube] Extracting URL: https://youtu.be/SA_tJ3f7tnY
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading webpage
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[youtube] SA_tJ3f7tnY: Downloading initial data API JSON
+[debug] Command-line config: ['-v', '-s', '--no-playlist', '--cache-dir', '/tmp/tmpadu1850l/c', '--remote-components', 'ejs:github', 'https://youtu.be/SA_tJ3f7tnY']
+[debug] Encodings: locale UTF-8, fs utf-8, pref UTF-8, out utf-8 (No ANSI), error utf-8 (No ANSI), screen utf-8 (No ANSI)
+[debug] yt-dlp version stable@2026.08.19 from yt-dlp/yt-dlp [594bd50c2] (pip)
+[debug] Python 3.14.8 (CPython x86_64 64bit) - Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 (OpenSSL 3.5.9 29 Sep 2026, glibc 2.43)
+[debug] exe versions: ffmpeg 8.1.3 (fdk,setts), ffprobe 8.1.3
+[debug] Optional libraries: certifi-2026.07.22, requests-2.34.2, sqlite3-3.51.2, urllib3-2.7.0
+[debug] JS runtimes: deno-2.9.4
+[debug] Proxy map: {}
+[debug] Request Handlers: urllib, requests
+[debug] Plugin directories: none
+[debug] Loaded 1744 extractors
+[debug] [youtube] [pot] PO Token Providers: none
+[debug] [youtube] [pot] PO Token Cache Providers: memory
+[debug] [youtube] [pot] PO Token Cache Spec Providers: webpo
+[debug] [youtube] [jsc] JS Challenge Providers: bun (unavailable), deno, node (unavailable), quickjs (unavailable)
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (1/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (2/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (3/3)...
+WARNING: [youtube] SA_tJ3f7tnY: Unable to download webpage: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable (caused by TransportError("HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable")). Giving up after 3 retries
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (1/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (2/3)...
+WARNING: [youtube] HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable. Retrying (3/3)...
+ERROR: [youtube] SA_tJ3f7tnY: Unable to download API page: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable (caused by TransportError("HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/common.py", line 765, in extract
+    ie_result = self._real_extract(url)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3935, in _real_extract
+    webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
+                                                                                                ~~~~~~~~~~~~~~~~~~~~~^
+        url, smuggled_data, webpage_url, self._webpage_client, video_id)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3916, in _initial_extract
+    initial_data = self._download_initial_data(video_id, webpage, webpage_client, webpage_ytcfg)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/youtube/_video.py", line 3894, in _download_initial_data
+    initial_data = self._extract_response(
+        item_id=video_id, ep='next', fatal=False,
+        ytcfg=webpage_ytcfg, query=query, check_get_keys='contents',
+   ... 88 lines cut ...
+          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/util/util.py", line 39, in reraise
+    raise value
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 788, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 1106, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+                       ~~~~~~~~~~~~~~^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/urllib3/connection.py", line 219, in _new_conn
+    raise NewConnectionError(
+        self, f"Failed to establish a new connection: {e}"
+    ) from e
+urllib3.exceptions.NewConnectionError: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/extractor/common.py", line 907, in _request_webpage
+    return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 4304, in urlopen
+    return self._request_director.send(req)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/common.py", line 117, in send
+    response = handler.send(request)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/_helper.py", line 194, in wrapper
+    return func(self, *args, **kwargs)
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/common.py", line 359, in send
+    return self._send(request)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/home/lab/Lab/tisini-video-tool/.venv/lib64/python3.14/site-packages/yt_dlp/networking/_requests.py", line 352, in _send
+    raise TransportError(cause=e) from e
+yt_dlp.networking.exceptions.TransportError: HTTPSConnection(host='www.youtube.com', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable

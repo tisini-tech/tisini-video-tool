@@ -110,7 +110,7 @@ DEFAULT_DOWNLOAD_FOLDER = os.path.join(
 
 # In auto mode, this many clips (or fewer) on one YouTube source uses
 # range download instead of fetching the whole match.
-RANGE_CLIP_LIMIT = 25
+RANGE_CLIP_LIMIT = 50
 
 
 def _positive_int(text: str) -> int:

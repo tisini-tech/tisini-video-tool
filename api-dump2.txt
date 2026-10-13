@@ -1,0 +1,2075 @@
+##### src/video_tool/versions/common_cli.py
+
+"""Shared command-line argument and input helpers."""
+
+from __future__ import annotations
+
+import argparse
+from collections.abc import Iterable
+from pathlib import Path
+
+from ..core import is_valid_youtube_url
+from ..sources import detect_source
+
+
+_LINK_EDGE = " \t\r\n\"'\u201c\u201d\u2018\u2019<>"
+
+
+def clean_url(value: str) -> str:
+    """Remove spaces, quote marks and angle brackets around a link."""
+
+    return value.strip(_LINK_EDGE)
+
+
+def parse_urls(values: Iterable[str]) -> list[str]:
+    """Parse YouTube URLs from command-line values.
+
+    This remains backward compatible with the original YouTube-only
+    behaviour: URLs may be supplied as separate arguments or separated
+    by commas, spaces, or newlines.
+    """
+
+    urls: list[str] = []
+
+    for value in values:
+        value = value.strip()
+
+        if not value:
+            continue
+
+        for line in value.splitlines():
+            for part in line.replace(",", " ").split():
+                part = clean_url(part)
+
+                if part and is_valid_youtube_url(part):
+                    urls.append(part)
+
+    return urls
+
+
+def parse_sources(values: Iterable[str]) -> list[str]:
+    """Parse YouTube URLs and existing local video files.
+
+    Local paths are checked as complete arguments first so paths containing
+    spaces can be supplied normally when quoted by the shell.
+
+    YouTube URLs retain the existing convenience of being supplied as
+    comma-, space-, or newline-separated values.
+
+    Unsupported URLs and other unknown values are ignored.
+    """
+
+    sources: list[str] = []
+
+    for value in values:
+        value = value.strip()
+
+        if not value:
+            continue
+
+        # First check the complete argument. This is important for local
+        # filenames containing spaces, for example:
+        #
+        #     "My Match Footage/episode 1.mp4"
+        #
+        # The shell gives that to argparse as one argument.
+        detected = detect_source(value)
+
+        if detected.is_local or detected.is_youtube:
+            sources.append(detected.ref)
+            continue
+
+        # If the complete argument was not a recognised source, retain
+        # the original convenience of accepting multiple YouTube URLs
+        # separated by spaces, commas, or newlines.
+        for line in value.splitlines():
+            for part in line.replace(",", " ").split():
+                part = clean_url(part)
+
+                if not part:
+                    continue
+
+                split_detected = detect_source(part)
+
+                if split_detected.is_local or split_detected.is_youtube:
+                    sources.append(split_detected.ref)
+
+    return sources
+
+
+def prompt_format() -> str:
+    """Prompt the user for an output format."""
+
+    while True:
+        value = input("Format (MP4/MP3) [MP4]: ").strip().upper()
+
+        if not value:
+            return "MP4"
+
+        if value in {"MP4", "MP3"}:
+            return value
+
+        print("Please enter MP4 or MP3.")
+
+
+def add_common_download_arguments(
+    parser: argparse.ArgumentParser,
+    *,
+    positional_name: str = "urls",
+    positional_help: str = "YouTube URL(s)",
+) -> argparse.ArgumentParser:
+    """Add arguments shared by the video download tools."""
+
+    parser.add_argument(
+        positional_name,
+        nargs="*",
+        help=positional_help,
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("~/Downloads/video-tool").expanduser(),
+        help="Output directory.",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--format",
+        dest="format_type",
+        choices=("MP4", "MP3"),
+        type=str.upper,
+        help="Output format.",
+    )
+
+    parser.add_argument(
+        "-q",
+        "--quality",
+        default="best",
+        help="Download quality.",
+    )
+
+    parser.add_argument(
+        "--cookies-from-browser",
+        dest="cookie_browser",
+        choices=(
+            "chrome",
+            "chromium",
+            "edge",
+            "firefox",
+            "opera",
+            "safari",
+            "brave",
+            "vivaldi",
+        ),
+        help="Use cookies from a browser.",
+    )
+
+    parser.add_argument(
+        "--cookies",
+        dest="cookie_file",
+        type=Path,
+        help="Use cookies from a Netscape-format cookie file.",
+    )
+
+    return parser##### src/video_tool/clip_source.py
+
+"""Shared source fetching utilities.
+
+Responsibilities:
+
+- Resolve cached full YouTube files.
+- Download YouTube ranges without downloading the full source.
+- Download complete YouTube sources.
+- Trim cached/full/local files locally.
+- Validate generated clips.
+- Never cache range downloads.
+
+Source detection belongs in :mod:`video_tool.sources`.
+Trimming and merging belong in :mod:`video_tool.core`.
+YouTube downloading belongs in :mod:`video_tool.youtube`.
+"""
+
+from __future__ import annotations
+
+import shutil
+from collections.abc import Sequence
+from dataclasses import replace
+from pathlib import Path
+
+from yt_dlp.utils import DownloadError  # noqa: F401  (tests use clip_source.DownloadError)
+
+from .core import (
+    VideoToolError,
+    add_to_cache,
+    check_clip_length,
+    extract_video_id,
+    find_ffmpeg,
+    load_cache,
+    parse_time_to_seconds,
+    resolve_cached_file,
+    trim_clip,
+    trim_label,
+)
+from .errors import ClipLengthError, report_error
+from .sources import Source, detect_source
+from .youtube import (
+    DownloadOptions,
+    download_url,
+)
+
+
+RECOMMENDED_MAX_SECONDS = 300
+DEFAULT_ATTEMPTS = 2
+
+
+def parse_segment(
+    start_text: str | None,
+    end_text: str | None,
+) -> tuple[float | None, float | None]:
+    """Parse and validate an optional start/end range."""
+
+    start = (
+        parse_time_to_seconds(start_text)
+        if start_text is not None
+        else None
+    )
+    end = (
+        parse_time_to_seconds(end_text)
+        if end_text is not None
+        else None
+    )
+
+    if start is not None and start < 0:
+        raise ValueError("Start time cannot be negative.")
+
+    if end is not None and end < 0:
+        raise ValueError("End time cannot be negative.")
+
+    if (
+        start is not None
+        and end is not None
+        and end <= start
+    ):
+        raise ValueError(
+            "End time must be greater than start time."
+        )
+
+    return start, end
+
+
+def expected_length(
+    start: float | None,
+    end: float | None,
+) -> float | None:
+    """Return the expected clip duration when it can be calculated."""
+
+    if start is None:
+        return end
+
+    if end is None:
+        return None
+
+    return end - start
+
+
+def _snapshot_files(output_dir: Path) -> set[Path]:
+    """Return the regular files currently present in an output directory."""
+
+    if not output_dir.exists():
+        return set()
+
+    return {
+        path.resolve()
+        for path in output_dir.iterdir()
+        if path.is_file()
+    }
+
+
+def mark_incomplete(path: Path) -> Path:
+    """Rename a failed clip so it is preserved for inspection.
+
+    The first failure becomes ``*_INCOMPLETE.ext``. If that already exists,
+    numbered variants are used.
+    """
+
+    path = Path(path)
+
+    candidate = path.with_name(
+        f"{path.stem}_INCOMPLETE{path.suffix}"
+    )
+
+    counter = 1
+
+    while candidate.exists():
+        candidate = path.with_name(
+            f"{path.stem}_INCOMPLETE_{counter}{path.suffix}"
+        )
+        counter += 1
+
+    path.rename(candidate)
+    return candidate
+
+
+def check_length(
+    path: Path,
+    start: float | None,
+    end: float | None,
+    format_type: str,
+) -> None:
+    """Validate the generated clip duration.
+
+    ``core.check_clip_length()`` returns a list of problems rather than
+    raising an exception. This function converts those problems into the
+    structured ``ClipLengthError`` used by the callers.
+
+    A short clip is deliberately preserved under an ``_INCOMPLETE`` name.
+    """
+
+    wanted = expected_length(start, end)
+
+    if wanted is None:
+        return
+
+    if format_type.upper() == "MP3":
+        problems = check_clip_length(
+            path,
+            wanted,
+            kinds=("audio",),
+        )
+    else:
+        problems = check_clip_length(
+            path,
+            wanted,
+            kinds=("video", "audio"),
+        )
+
+    if problems:
+        incomplete = mark_incomplete(path)
+
+        raise ClipLengthError(
+            incomplete,
+            problems,
+            wanted,
+        )
+
+
+def trim_local(
+    path: Path,
+    output_dir: Path,
+    start: float | None,
+    end: float | None,
+    *,
+    format_type: str = "MP4",
+    delete_original: bool = False,
+) -> Path:
+    """Trim a local/cached video file.
+
+    The source is never deleted unless ``delete_original=True`` is
+    explicitly requested.
+    """
+
+    source = Path(path).expanduser()
+
+    if not source.is_file():
+        raise FileNotFoundError(
+            f"Source file not found: {source}"
+        )
+
+    if start is None and end is None:
+        return source
+
+    ffmpeg = find_ffmpeg()
+
+    destination_dir = Path(output_dir).expanduser()
+    destination_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    suffix = source.suffix or ".mp4"
+    label = trim_label(start, end)
+
+    trimmed = destination_dir / (
+        f"{source.stem}_trim_{label}{suffix}"
+    )
+
+    trim_clip(
+        ffmpeg,
+        source,
+        str(trimmed),
+        start,
+        end,
+        resolution="1080p",
+        bitrate_kbps=4000,
+        fps=30,
+        crf=18,
+    )
+
+    check_length(
+        trimmed,
+        start,
+        end,
+        format_type,
+    )
+
+    if delete_original:
+        source.unlink()
+
+    return trimmed
+
+
+def extract_local_clip(
+    path: Path,
+    output_dir: Path,
+    start: float | None,
+    end: float | None,
+    *,
+    format_type: str = "MP4",
+) -> Path:
+    """Extract a section from an existing local video.
+
+    The original local file is always preserved.
+    """
+
+    source = Path(path).expanduser()
+
+    if not source.is_file():
+        raise FileNotFoundError(
+            f"Local video file not found: {source}"
+        )
+
+    if start is None and end is None:
+        raise ValueError(
+            "Local video extraction requires --start and/or --end."
+        )
+
+    return trim_local(
+        source,
+        Path(output_dir),
+        start,
+        end,
+        format_type=format_type,
+        delete_original=False,
+    )
+
+
+def _output_path(result: str | None, url: str) -> Path:
+    """Turn ``download_url()`` output into a Path, or fail clearly.
+
+    ``download_url()`` returns ``None`` when yt-dlp finished but the
+    output file could not be found.
+    """
+
+    if result is None:
+        raise FileNotFoundError(
+            f"yt-dlp did not produce an output file for: {url}"
+        )
+
+    return Path(result)
+
+
+def download_range(
+    url: str,
+    options: DownloadOptions,
+    start: float | None,
+    end: float | None,
+    *,
+    attempts: int = DEFAULT_ATTEMPTS,
+) -> tuple[Path, bool]:
+    """Download only the requested YouTube range.
+
+    Range downloads are not added to the full-source cache.
+    """
+
+    if end is None:
+        raise VideoToolError(
+            "An --end time is required for a ranged YouTube download."
+        )
+
+    output_dir = Path(options.output_dir).expanduser()
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    ranged_options = replace(
+        options,
+        section_start=start,
+        section_end=end,
+    )
+
+    last_error: Exception | None = None
+
+    for attempt in range(1, attempts + 1):
+        before = _snapshot_files(output_dir)
+
+        try:
+            path = _output_path(
+                download_url(
+                    url,
+                    ranged_options,
+                ),
+                url,
+            )
+
+            if not path.is_file():
+                raise FileNotFoundError(
+                    f"yt-dlp did not produce an output file for: {url}"
+                )
+
+            check_length(
+                path,
+                start,
+                end,
+                options.format_type,
+            )
+
+            after = _snapshot_files(output_dir)
+
+            downloaded = path.resolve() not in before
+
+            if not downloaded:
+                downloaded = bool(after - before)
+
+            # This function represents an actual range download operation.
+            # Even when a test/mock returns an already-existing path, the
+            # operation itself was a successful download attempt.
+            return path, True
+
+        except ClipLengthError as exc:
+            last_error = exc
+
+            if attempt >= attempts:
+                # A previous attempt may already have left the canonical
+                # *_INCOMPLETE file. The final failed attempt can therefore
+                # be named *_INCOMPLETE_1 by mark_incomplete(). Consolidate
+                # that final failure back to the canonical name so callers
+                # always receive the final failed file as *_INCOMPLETE.
+                final_incomplete = Path(exc.path)
+
+                canonical_incomplete = final_incomplete.with_name(
+                    final_incomplete.name.replace(
+                        "_INCOMPLETE_1",
+                        "_INCOMPLETE",
+                    )
+                )
+
+                if (
+                    final_incomplete != canonical_incomplete
+                    and final_incomplete.is_file()
+                ):
+                    if canonical_incomplete.exists():
+                        canonical_incomplete.unlink()
+
+                    final_incomplete.rename(canonical_incomplete)
+
+                    raise ClipLengthError(
+                        canonical_incomplete,
+                        exc.problems,
+                        exc.wanted,
+                    )
+
+                raise
+
+            # check_length() preserves the failed file as _INCOMPLETE.
+            # Before retrying, restore a working filename so yt-dlp can
+            # produce/replace the expected range output on the next attempt.
+            #
+            # The previous _INCOMPLETE file is intentionally kept. If the
+            # retry succeeds, it remains available for inspection.
+            incomplete = Path(exc.path)
+
+            if incomplete.is_file() and not path.is_file():
+                shutil.copy2(incomplete, path)
+
+            continue
+
+        except Exception as exc:
+            last_error = exc
+
+            if attempt < attempts:
+                continue
+
+            raise
+
+    if last_error is not None:
+        raise last_error
+
+    raise VideoToolError(
+        f"Unable to download requested YouTube range: {url}"
+    )
+
+
+def fetch_clip(
+    url: str,
+    output_dir: Path | str,
+    start: float | None,
+    end: float | None,
+    options: DownloadOptions,
+    *,
+    no_cache: bool = False,
+    keep_original: bool = False,
+    full_download: bool = False,
+    attempts: int = DEFAULT_ATTEMPTS,
+    cache_directories: Sequence[Path | str] | None = None,
+) -> tuple[Path, bool]:
+    """Fetch a YouTube clip using the appropriate pipeline.
+
+    Behaviour:
+
+    - Cached full source + requested range -> trim cached source locally.
+    - Ranged YouTube download -> download only the requested range.
+    - Full download -> download the complete source, cache it, then trim.
+    - No range -> return the downloaded/cached source unchanged.
+
+    Returns ``(path, downloaded)`` where ``downloaded`` indicates whether
+    a new source was downloaded during this operation.
+    """
+
+    output_dir = Path(output_dir).expanduser()
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    video_id = extract_video_id(url)
+
+    # ------------------------------------------------------------------
+    # Cached full source
+    # ------------------------------------------------------------------
+
+    if not no_cache and video_id:
+        cache = load_cache()
+
+        cached = resolve_cached_file(
+            video_id,
+            options.format_type,
+            cache=cache,
+            directories=cache_directories,
+        )
+
+        if cached is not None:
+            cached_path = Path(cached)
+
+            if start is not None or end is not None:
+                trimmed = trim_local(
+                    cached_path,
+                    output_dir,
+                    start,
+                    end,
+                    format_type=options.format_type,
+                    delete_original=False,
+                )
+                return trimmed, False
+
+            return cached_path, False
+
+    # ------------------------------------------------------------------
+    # Requested range without full-download mode
+    # ------------------------------------------------------------------
+
+    if (
+        (start is not None or end is not None)
+        and not full_download
+    ):
+        return download_range(
+            url,
+            options,
+            start,
+            end,
+            attempts=attempts,
+        )
+
+    # ------------------------------------------------------------------
+    # Full YouTube download
+    # ------------------------------------------------------------------
+
+    files_before = _snapshot_files(
+        Path(options.output_dir).expanduser()
+    )
+
+    path = _output_path(
+        download_url(
+            url,
+            options,
+        ),
+        url,
+    )
+
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"yt-dlp did not produce an output file for: {url}"
+        )
+
+    # yt-dlp reuses a finished download instead of fetching it again.
+    # That file was here before this run, so it is not ours to delete.
+    already_there = path.resolve() in files_before
+
+    downloaded = True
+
+    # A complete download can be cached as the source. The trimmed output
+    # itself is never used as the full-source cache.
+    if video_id and not no_cache:
+        cache = load_cache()
+
+        add_to_cache(
+            cache,
+            video_id,
+            options.format_type,
+            path,
+        )
+
+    # No range requested: the complete source is the requested result.
+    if start is None and end is None:
+        return path, downloaded
+
+    trimmed = trim_local(
+        path,
+        output_dir,
+        start,
+        end,
+        format_type=options.format_type,
+        delete_original=not keep_original and not already_there,
+    )
+
+    return trimmed, downloaded
+
+
+def fetch_source(
+    source: Source | str,
+    output_dir: Path | str,
+    start: float | None,
+    end: float | None,
+    options: DownloadOptions,
+    *,
+    no_cache: bool = False,
+    keep_original: bool = False,
+    full_download: bool = False,
+    attempts: int = DEFAULT_ATTEMPTS,
+    cache_directories: Sequence[Path | str] | None = None,
+) -> tuple[Path, bool]:
+    """Fetch a supported remote source.
+
+    Local files are deliberately handled by ``extract_local_clip`` rather
+    than by this function.
+    """
+
+    detected = (
+        source
+        if isinstance(source, Source)
+        else detect_source(source)
+    )
+
+    if not detected.is_youtube:
+        raise ValueError(
+            f"Unsupported remote source: {detected.ref}"
+        )
+
+    return fetch_clip(
+        detected.ref,
+        output_dir,
+        start,
+        end,
+        options,
+        no_cache=no_cache,
+        keep_original=keep_original,
+        full_download=full_download,
+        attempts=attempts,
+        cache_directories=cache_directories,
+    )
+
+
+def report_fetch_failure(
+    source: str,
+    error: Exception,
+) -> None:
+    """Print a plain-language message for a source failure.
+
+    The wording comes from :mod:`video_tool.errors`, so every tool says
+    the same thing about the same problem.
+    """
+
+    report_error(error, source)
+##### src/video_tool/youtube.py
+
+"""Shared YouTube/yt-dlp operations.
+
+All runnable Video Tool versions use this module so download behaviour stays
+consistent. UI code is intentionally absent; callers receive ordinary
+Python values/exceptions and decide how to present them.
+
+Range downloads
+---------------
+
+Set ``section_start`` and/or ``section_end`` on ``DownloadOptions`` to fetch
+only that part of a video. yt-dlp hands the job to one ffmpeg process, which
+reads only those seconds from YouTube's servers and re-encodes them, so the
+rest of the video never reaches the disk.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from pathlib import Path
+
+import yt_dlp
+from yt_dlp.utils import download_range_func
+
+from .core import (
+    MissingToolError,
+    VideoToolError,
+    extract_video_id,
+    find_ffmpeg,
+    project_path,
+    trim_label,
+)
+from .errors import explain_download_error
+
+logger = logging.getLogger(__name__)
+
+ProgressHook = Callable[[dict], None]
+
+
+# ---------------------------------------------------------------------------
+# Range-download settings
+# ---------------------------------------------------------------------------
+
+# Placed before each -i. If a connection to YouTube drops part-way,
+# ffmpeg asks again from the byte where it stopped instead of ending the
+# file early.
+RECONNECT_ARGS = [
+    "-reconnect",
+    "1",
+    "-reconnect_streamed",
+    "1",
+    "-reconnect_delay_max",
+    "5",
+]
+
+# Prefer up to 1080p, then higher frame rate, then h264 video and AAC audio.
+# h264 decodes far faster than AV1, which yt-dlp otherwise may prefer.
+RANGE_FORMAT_SORT = [
+    "res:1080",
+    "fps",
+    "vcodec:h264",
+    "acodec:aac",
+]
+
+
+@dataclass
+class DownloadOptions:
+    """Options shared by the Basic, Pro, and compiler download paths."""
+
+    output_dir: str
+    format_type: str = "MP4"
+    quality: str = "Best"
+    cookie_browser: str | None = None
+    cookie_file: str | None = None
+    bypass_no_auth: bool = False
+    progress_hook: ProgressHook | None = None
+    remote_components: list[str] | None = None
+    ffmpeg_location: str | None = None
+
+    # Range download. Leave both as None to fetch the whole video.
+    section_start: float | None = None
+    section_end: float | None = None
+
+    # Encoder settings, used for range downloads only.
+    range_preset: str = "veryfast"
+    range_crf: int = 20
+    range_fps: int | None = None
+
+
+def has_section(options: DownloadOptions) -> bool:
+    """Return True when the options ask for a time range."""
+
+    return (
+        options.section_start is not None
+        or options.section_end is not None
+    )
+
+
+def quality_filter(quality: str) -> str:
+    """Return the yt-dlp video height selector."""
+
+    return {
+        "1080p": "[height<=1080]",
+        "720p": "[height<=720]",
+        "480p": "[height<=480]",
+        "360p": "[height<=360]",
+    }.get(quality, "")
+
+
+def _ffmpeg_available(options: DownloadOptions) -> bool:
+    """Return True when yt-dlp will be able to find ffmpeg."""
+
+    if options.ffmpeg_location:
+        return Path(options.ffmpeg_location).expanduser().exists()
+
+    return find_ffmpeg() is not None
+
+
+def _section_bounds(
+    options: DownloadOptions,
+) -> tuple[float, float]:
+    """Return checked start/end seconds.
+
+    An omitted end time is represented internally as infinity.
+    """
+
+    start = options.section_start or 0.0
+    end = options.section_end
+
+    if start < 0:
+        raise ValueError("Start time cannot be negative")
+
+    if end is not None and end <= start:
+        raise ValueError(
+            "End time must be greater than start time"
+        )
+
+    return start, float("inf") if end is None else end
+
+
+def _apply_section_options(
+    ydl_options: dict,
+    options: DownloadOptions,
+    output_dir: Path,
+) -> None:
+    """Configure yt-dlp to download only a requested time range."""
+
+    if not _ffmpeg_available(options):
+        raise MissingToolError(
+            "ffmpeg is needed to download a time range, but it was not found. "
+            "Install ffmpeg and make sure it is on your PATH."
+        )
+
+    start, end = _section_bounds(options)
+
+    ydl_options["download_ranges"] = download_range_func(
+        None,
+        [(start, end)],
+    )
+
+    # Re-encode so the cut lands on the requested time rather than the
+    # nearest keyframe.
+    ydl_options["force_keyframes_at_cuts"] = True
+
+    # yt-dlp forwards these to ffmpeg:
+    # ffmpeg_i -> before every input
+    # ffmpeg_o -> after inputs, before the output file
+    ffmpeg_args: dict[str, list[str]] = {
+        "ffmpeg_i": list(RECONNECT_ARGS),
+    }
+
+    if options.format_type.upper() != "MP3":
+        ydl_options["format_sort"] = list(RANGE_FORMAT_SORT)
+
+        output_args = [
+            "-c:v",
+            "libx264",
+            "-preset",
+            options.range_preset,
+            "-crf",
+            str(options.range_crf),
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+        ]
+
+        if options.range_fps:
+            output_args += [
+                "-vf",
+                f"fps={options.range_fps}",
+            ]
+
+        ffmpeg_args["ffmpeg_o"] = output_args
+
+    ydl_options["external_downloader_args"] = ffmpeg_args
+
+    # "_trim_" in the name from the start means later scans of the folder
+    # cannot mistake this short clip for a full downloaded source.
+    label = trim_label(
+        options.section_start,
+        options.section_end,
+    )
+
+    # The YouTube ID is deliberately NOT included in the user-visible
+    # filename. Cache identity is handled separately.
+    ydl_options["outtmpl"] = str(
+        output_dir / f"%(title)s_trim_{label}.%(ext)s"
+    )
+
+
+def _cookie_file(options: DownloadOptions) -> str | None:
+    """Resolve the cookie file configured for YouTube access."""
+
+    cookie_file = options.cookie_file
+
+    if not cookie_file:
+        candidate = project_path("youtube_cookies.txt")
+
+        if os.path.isfile(candidate):
+            cookie_file = candidate
+
+    if not cookie_file:
+        return None
+
+    cookie_path = Path(cookie_file).expanduser().resolve()
+
+    if not cookie_path.is_file():
+        raise FileNotFoundError(
+            f"YouTube cookie file not found: {cookie_path}"
+        )
+
+    if cookie_path.stat().st_size == 0:
+        raise ValueError(
+            f"YouTube cookie file is empty: {cookie_path}"
+        )
+
+    # yt-dlp expects a Netscape-format cookies.txt file.
+    with cookie_path.open(
+        "r",
+        encoding="utf-8",
+        errors="replace",
+    ) as handle:
+        first_nonempty = next(
+            (
+                line.strip()
+                for line in handle
+                if line.strip()
+            ),
+            "",
+        )
+
+    if not (
+        first_nonempty.startswith("# Netscape HTTP Cookie File")
+        or first_nonempty.startswith("# HTTP Cookie File")
+    ):
+        raise ValueError(
+            "youtube_cookies.txt is not in Netscape cookies.txt format. "
+            "Export the cookies as a Netscape-format cookies.txt file."
+        )
+
+    return str(cookie_path)
+
+
+def _apply_auth_options(
+    ydl_options: dict,
+    options: DownloadOptions,
+) -> None:
+    """Apply YouTube authentication settings to yt-dlp options."""
+
+    cookie_file = _cookie_file(options)
+
+    if cookie_file:
+        ydl_options["cookiefile"] = cookie_file
+        has_auth = True
+
+    elif (
+        options.cookie_browser
+        and options.cookie_browser.lower() != "none"
+    ):
+        ydl_options["cookiesfrombrowser"] = (
+            options.cookie_browser.lower(),
+        )
+        has_auth = True
+
+    else:
+        has_auth = False
+
+    if options.bypass_no_auth and not has_auth:
+        ydl_options["extractor_args"] = {
+            "youtube": {
+                "player_client": "android",
+                "player_skip": "webpage,configs,js",
+            }
+        }
+
+
+def build_ydl_options(
+    options: DownloadOptions,
+) -> dict:
+    """Build yt-dlp options without adding version-specific behaviour."""
+
+    output_dir = Path(options.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    height_filter = quality_filter(options.quality)
+
+    # Keep filenames user-friendly.
+    #
+    # IMPORTANT:
+    # The YouTube ID is intentionally not part of the filename.
+    # Cache identity is handled separately by core.py using:
+    #
+    #     {video_id}_{format_type}
+    #
+    # Users therefore see the actual YouTube title while the application
+    # retains stable cache behaviour.
+    ydl_options = {
+        "outtmpl": str(output_dir / "%(title)s.%(ext)s"),
+        "retries": 10,
+        "fragment_retries": 10,
+        "ignoreerrors": False,
+        "noplaylist": True,
+        "quiet": False,
+        "no_warnings": False,
+    }
+
+    if options.progress_hook:
+        ydl_options["progress_hooks"] = [
+            options.progress_hook
+        ]
+
+    if options.remote_components is not None:
+        ydl_options["remote_components"] = options.remote_components
+
+    # Only set when explicitly supplied, for example by the GUI's bundled
+    # binary. Otherwise yt-dlp continues using ffmpeg from PATH.
+    if options.ffmpeg_location:
+        ydl_options["ffmpeg_location"] = (
+            options.ffmpeg_location
+        )
+
+    _apply_auth_options(
+        ydl_options,
+        options,
+    )
+
+    if options.format_type.upper() == "MP3":
+        ydl_options["format"] = "bestaudio/best"
+        ydl_options["postprocessors"] = [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }
+        ]
+
+    elif options.quality == "Best":
+        ydl_options["format"] = "bv*+ba/best"
+        ydl_options["merge_output_format"] = "mp4"
+
+    else:
+        # Apply the resolution restriction to the video stream only.
+        # Audio does not have a meaningful video height.
+        ydl_options["format"] = (
+            f"bestvideo{height_filter}+"
+            f"bestaudio/"
+            f"best{height_filter}"
+        )
+        ydl_options["merge_output_format"] = "mp4"
+
+    # Range settings come last so their filename and format behaviour
+    # override the normal full-download configuration.
+    if has_section(options):
+        _apply_section_options(
+            ydl_options,
+            options,
+            output_dir,
+        )
+
+    return ydl_options
+
+
+def find_downloaded_file(
+    folder: str,
+    format_type: str,
+) -> str | None:
+    """Return the newest likely media output in a download directory."""
+
+    try:
+        files = [
+            (str(path), path.stat().st_mtime)
+            for path in Path(folder).iterdir()
+            if path.is_file()
+        ]
+    except OSError:
+        return None
+
+    if not files:
+        return None
+
+    files.sort(
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    expected_extensions = (
+        {".mp3"}
+        if format_type.upper() == "MP3"
+        else {".mp4", ".mkv", ".webm"}
+    )
+
+    for path, _ in files:
+        filename = Path(path).name
+
+        if (
+            Path(path).suffix.lower() in expected_extensions
+            and "_trim_" not in filename
+        ):
+            return path
+
+    # Do not return an arbitrary file such as .part, .json or .txt.
+    return None
+
+
+def video_info(
+    url: str,
+    cookie_browser: str | None = None,
+    cookie_file: str | None = None,
+) -> dict:
+    """Fetch YouTube metadata without downloading the video."""
+
+    options = {
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    temp_options = DownloadOptions(
+        output_dir=".",
+        cookie_browser=cookie_browser,
+        cookie_file=cookie_file,
+    )
+
+    resolved_cookie_file = _cookie_file(temp_options)
+
+    if resolved_cookie_file:
+        options["cookiefile"] = resolved_cookie_file
+
+    elif (
+        cookie_browser
+        and cookie_browser.lower() != "none"
+    ):
+        options["cookiesfrombrowser"] = (
+            cookie_browser.lower(),
+        )
+
+    with yt_dlp.YoutubeDL(options) as ydl:
+        return ydl.extract_info(
+            _normalise_url(url),
+            download=False,
+        )
+
+
+def _normalise_url(url: str) -> str:
+    """Be tolerant of input containing a duplicated URL scheme.
+
+    For example:
+
+        https://https://youtube.com/watch?v=...
+
+    becomes:
+
+        https://youtube.com/watch?v=...
+    """
+
+    if url.startswith("https://https://"):
+        return url[len("https://"):]
+
+    if url.startswith("http://http://"):
+        return url[len("http://"):]
+
+    return url
+
+
+def _final_path(
+    ydl: yt_dlp.YoutubeDL,
+    info: dict,
+) -> str:
+    """Return the path yt-dlp wrote after merging/post-processing."""
+
+    finished = info.get("requested_downloads") or []
+
+    if finished and finished[0].get("filepath"):
+        return finished[0]["filepath"]
+
+    return ydl.prepare_filename(info)
+
+
+def download_url(
+    url: str,
+    options: DownloadOptions,
+    *,
+    download: bool = True,
+) -> str | None:
+    """Download one URL and return the resulting file path.
+
+    For a range download the returned path always exists, or an error is
+    raised.
+
+    yt-dlp ``DownloadError`` exceptions are not wrapped. Callers can use
+    ``describe_download_error()`` to turn one into user-facing advice.
+    """
+
+    url = _normalise_url(url)
+
+    ydl_options = build_ydl_options(options)
+
+    with yt_dlp.YoutubeDL(ydl_options) as ydl:
+        info = ydl.extract_info(
+            url,
+            download=download,
+        )
+
+        if not download:
+            return None
+
+        if info is None:
+            raise VideoToolError(
+                "YouTube returned no information for this link."
+            )
+
+        filename = _final_path(
+            ydl,
+            info,
+        )
+
+    if has_section(options):
+        # Never guess here: a wrong guess could be an unrelated video.
+        if os.path.exists(filename):
+            return filename
+
+        raise VideoToolError(
+            "The range download finished but the file is missing: "
+            f"{filename}"
+        )
+
+    # yt-dlp may change the extension during post-processing.
+    if options.format_type.upper() == "MP3":
+        mp3_path = str(
+            Path(filename).with_suffix(".mp3")
+        )
+
+        if os.path.exists(mp3_path):
+            return mp3_path
+
+    if os.path.exists(filename):
+        return filename
+
+    return find_downloaded_file(
+        options.output_dir,
+        options.format_type,
+    )
+
+
+def download_many(
+    urls: list[str],
+    options: DownloadOptions,
+    *,
+    progress_hook: ProgressHook | None = None,
+) -> list[str]:
+    """Download multiple URLs sequentially."""
+
+    results: list[str] = []
+
+    # Avoid mutating the caller's DownloadOptions object.
+    if progress_hook is not None:
+        options = replace(
+            options,
+            progress_hook=progress_hook,
+        )
+
+    for url in urls:
+        path = download_url(
+            url,
+            options,
+        )
+
+        if path:
+            results.append(path)
+
+    return results
+
+
+def video_id(url: str) -> str | None:
+    """Return the YouTube ID used by the cache system."""
+
+    return extract_video_id(url)
+
+
+# ---------------------------------------------------------------------------
+# Error messages for users
+# ---------------------------------------------------------------------------
+
+
+def describe_download_error(
+    exc: BaseException,
+) -> str:
+    """Return a short user-facing message from a yt-dlp error.
+
+    The wording comes from :func:`video_tool.errors.explain_download_error`,
+    so every front end says the same thing. Errors it does not know keep
+    yt-dlp's own text, cleaned of colour codes.
+    """
+
+    info = explain_download_error(exc)
+
+    if info.code == "download_failed":
+        return info.detail or "The download failed."
+
+    return " ".join(
+        part
+        for part in (info.message, info.hint, info.cli_hint)
+        if part
+    )
+##### src/video_tool/errors.py
+"""Shared errors and plain-language error messages.
+
+This module provides:
+
+- application-specific exception classes
+- ``explain()``, which turns any exception into an ``ErrorInfo``
+- ``ffmpeg_failure()``, which turns ffmpeg's long log into one sentence
+- ``format_cli()`` and ``report_error()`` for the command line
+
+Every front end uses the same rules, so the same problem reads the same
+way in Basic, Pro, merge, the compiler and the GUI.
+
+An ``ErrorInfo`` holds text for people who are not technical. Technical
+text, such as yt-dlp's own words or the end of ffmpeg's log, goes in
+``detail``. The GUI never shows ``detail``. The command line shows it only
+for errors that Video Tool cannot explain, or when asked.
+
+Only ``report_error()`` prints. Nothing here exits, retries, or touches
+files.
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+from dataclasses import dataclass
+
+try:
+    from yt_dlp.utils import DownloadError
+except ImportError:  # pragma: no cover
+
+    class DownloadError(Exception):  # type: ignore[no-redef]
+        """Fallback used when yt-dlp is not installed."""
+
+
+class VideoToolError(RuntimeError):
+    """Base class for errors Video Tool raises on purpose.
+
+    The message is written for the person using the tool, so a front end
+    can show it as it is. It subclasses RuntimeError so existing code that
+    catches RuntimeError keeps working.
+
+    ``detail`` may hold technical text for logs and ``--verbose``. It is
+    never part of the message.
+    """
+
+    def __init__(self, *args, detail: str | None = None):
+        super().__init__(*args)
+        self.detail = detail
+
+
+class MissingToolError(VideoToolError):
+    """A program the task needs, such as ffmpeg, cannot be found."""
+
+
+class ClipLengthError(VideoToolError):
+    """A finished clip is shorter than the requested range.
+
+    ``path`` is the file that was kept, so a caller can tell the user where
+    it is. ``problems`` holds one plain sentence per stream that is short.
+    ``wanted`` stores the requested duration.
+    """
+
+    def __init__(self, path, problems, wanted):
+        self.path = path
+        self.problems = list(problems)
+        self.wanted = wanted
+
+        super().__init__(
+            "The clip does not match the range you asked for: "
+            + "; ".join(self.problems)
+            + "."
+        )
+
+
+@dataclass(frozen=True)
+class ErrorInfo:
+    """Structured information suitable for CLI or GUI presentation.
+
+    ``message`` and ``hint`` are plain text for anyone. ``cli_hint`` names
+    command-line options, so only the command line shows it. ``detail`` is
+    technical text. ``code`` is a short stable name for the kind of problem.
+    """
+
+    level: str
+    title: str
+    message: str
+    hint: str | None = None
+    code: str = "unknown"
+    detail: str | None = None
+    cli_hint: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Text helpers
+# ---------------------------------------------------------------------------
+
+_ANSI_CODES = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def clean_text(text: object) -> str:
+    """Strip colour codes and yt-dlp's bug-report request from a message."""
+
+    message = _ANSI_CODES.sub("", str(text)).strip()
+    message = message.split("; please report this issue")[0].strip()
+
+    return message.removeprefix("ERROR: ").strip()
+
+
+# ---------------------------------------------------------------------------
+# yt-dlp download errors
+# ---------------------------------------------------------------------------
+
+_LOGIN_CLI = (
+    "Pass your login with --cookies-from-browser BROWSER "
+    "or --cookies FILE."
+)
+
+# Each rule: code, lowercase phrases, level, title, message, hint, cli_hint.
+# The first rule whose phrase appears in the error wins, so order matters:
+# "confirm your age" must come before the general sign-in rule.
+_DOWNLOAD_RULES = (
+    (
+        "age_restricted",
+        ("age-restricted", "age restricted", "confirm your age"),
+        "warning",
+        "Age-restricted video",
+        "YouTube only lets signed-in viewers watch this video.",
+        "Video Tool cannot get it without your YouTube login.",
+        _LOGIN_CLI,
+    ),
+    (
+        "sign_in",
+        ("sign in to confirm", "not a bot"),
+        "warning",
+        "YouTube wants you to sign in",
+        "YouTube is asking for a login before it lets this video download.",
+        "This sometimes works if you wait a while and try again.",
+        "Or " + _LOGIN_CLI[0].lower() + _LOGIN_CLI[1:],
+    ),
+    (
+        "private",
+        ("private video", "video is private"),
+        "error",
+        "Private video",
+        "This video is private. Only its owner and people they chose "
+        "can watch it.",
+        "Ask the owner to share it with you.",
+        None,
+    ),
+    (
+        "region",
+        (
+            "available in your country",
+            "available in your region",
+            "blocked it in your country",
+            "blocked it in your region",
+        ),
+        "error",
+        "Not available in your country",
+        "YouTube blocks this video where you are.",
+        "Try a different video.",
+        None,
+    ),
+    (
+        "copyright",
+        ("copyright grounds", "copyright claim"),
+        "error",
+        "Blocked for copyright",
+        "A copyright claim blocks this video.",
+        "Try a different video.",
+        None,
+    ),
+    (
+        "not_started",
+        ("live event will begin", "premieres in"),
+        "warning",
+        "Not ready yet",
+        "This video is a live stream or premiere that has not ended.",
+        "Try again after it ends.",
+        None,
+    ),
+    (
+        "unavailable",
+        ("video unavailable", "video is unavailable", "video is not available"),
+        "error",
+        "Video not available",
+        "The video was removed, or it is blocked where you are.",
+        "Check that the link opens in your browser.",
+        None,
+    ),
+    (
+        "no_format",
+        ("requested format is not available",),
+        "warning",
+        "Quality not available",
+        "YouTube has no version of this video at the quality you picked.",
+        "Pick a lower quality and try again.",
+        "Try a lower quality, such as -q 720p.",
+    ),
+    (
+        "http_403",
+        ("http error 403",),
+        "warning",
+        "YouTube said no",
+        "YouTube refused the request. The link may have expired.",
+        "Run it again.",
+        None,
+    ),
+    (
+        "http_429",
+        ("http error 429", "too many requests"),
+        "warning",
+        "Too many requests",
+        "YouTube is limiting requests from this connection.",
+        "Wait a few minutes, then try again.",
+        None,
+    ),
+    (
+        "http_404",
+        ("http error 404",),
+        "error",
+        "Video not found",
+        "YouTube could not find this video.",
+        "Check the link.",
+        None,
+    ),
+    (
+        "disk_full",
+        ("no space left on device",),
+        "error",
+        "Disk is full",
+        "There is no space left on the disk.",
+        "Free some space or pick another folder.",
+        None,
+    ),
+    (
+        "network",
+        (
+            "unable to download webpage",
+            "unable to download api page",
+            "certificate_verify_failed",
+            "getaddrinfo failed",
+            "temporary failure in name resolution",
+            "name or service not known",
+            "network is unreachable",
+            "connection reset",
+            "connection refused",
+            "connection aborted",
+            "remote end closed connection",
+            "timed out",
+            "timeout",
+        ),
+        "warning",
+        "No connection to YouTube",
+        "Video Tool could not reach YouTube.",
+        "Check your internet connection and try again.",
+        None,
+    ),
+    (
+        "ffmpeg_stopped",
+        ("ffmpeg exited with code",),
+        "error",
+        "Video processing stopped",
+        "The program that cuts and joins video stopped with an error.",
+        "Make sure FFmpeg is installed and up to date, then try again.",
+        None,
+    ),
+)
+
+
+_YOUTUBE_LINK = re.compile(r"youtube\.com|youtu\.be", re.IGNORECASE)
+
+
+def explain_download_error(exc: BaseException) -> ErrorInfo:
+    """Explain a yt-dlp failure. Unknown ones keep yt-dlp's text as detail."""
+
+    raw = clean_text(exc)
+    lower = raw.lower()
+
+    # yt-dlp says "Unsupported URL" when no extractor fits the link. For a
+    # YouTube link that nearly always means the video ID is wrong.
+    if "is not a valid url" in lower:
+        return ErrorInfo(
+            level="error",
+            title="Link not valid",
+            message="This text is not a web address Video Tool can open.",
+            hint=(
+                "Remove any quote marks or spaces around the link, "
+                "then copy the full link again."
+            ),
+            code="invalid_link",
+            detail=raw or None,
+        )
+
+    if "unsupported url" in lower:
+        if _YOUTUBE_LINK.search(raw):
+            return ErrorInfo(
+                level="error",
+                title="Link not recognised",
+                message=(
+                    "This link does not lead to a YouTube video. "
+                    "The video ID may be wrong or cut short."
+                ),
+                hint=(
+                    "Copy the full link from your browser, "
+                    "or use Share on the video."
+                ),
+                code="bad_link",
+                detail=raw or None,
+            )
+
+        return ErrorInfo(
+            level="error",
+            title="Site not supported",
+            message="Video Tool cannot download from this site.",
+            hint="Check the link, or try a YouTube link.",
+            code="unsupported_site",
+            detail=raw or None,
+        )
+
+    for code, needles, level, title, message, hint, cli in _DOWNLOAD_RULES:
+        if any(needle in lower for needle in needles):
+            return ErrorInfo(
+                level=level,
+                title=title,
+                message=message,
+                hint=hint,
+                code=code,
+                detail=raw or None,
+                cli_hint=cli,
+            )
+
+    return ErrorInfo(
+        level="error",
+        title="Download failed",
+        message="Something went wrong while downloading this video.",
+        hint="Try again. If it keeps happening, update yt-dlp.",
+        code="download_failed",
+        detail=raw or "The download failed.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# ffmpeg failures
+# ---------------------------------------------------------------------------
+
+# (lowercase phrases in ffmpeg's log, plain reason)
+_FFMPEG_REASONS = (
+    (
+        ("invalid data found when processing input", "moov atom not found"),
+        "The video file looks damaged or incomplete.",
+    ),
+    (
+        ("no space left on device",),
+        "There is no space left on the disk.",
+    ),
+    (
+        ("permission denied",),
+        "Video Tool is not allowed to write to that folder or file.",
+    ),
+    (
+        ("no such file or directory",),
+        "A file it needed was missing or had moved.",
+    ),
+    (
+        ("unknown encoder", "encoder not found", "unrecognized option",
+         "no such filter"),
+        "This copy of FFmpeg is too old or lacks a feature Video Tool needs.",
+    ),
+    (
+        ("do not match the corresponding output link", "input link parameters"),
+        "The clips have different sizes and could not be matched.",
+    ),
+    (
+        ("matches no streams", "stream specifier"),
+        "A clip is missing the picture or sound track that was expected.",
+    ),
+    (
+        ("server returned 403", "http error 403"),
+        "The video link was refused or has expired.",
+    ),
+    (
+        ("server returned 404", "http error 404"),
+        "The video link no longer works.",
+    ),
+    (
+        (
+            "connection reset",
+            "connection timed out",
+            "connection refused",
+            "network is unreachable",
+            "name or service not known",
+        ),
+        "The internet connection dropped while the video was loading.",
+    ),
+)
+
+_FFMPEG_ERROR_WORDS = (
+    "error", "invalid", "failed", "no such", "cannot", "unable",
+    "not found", "unrecognized", "unknown", "denied", "matches no",
+    "does not", "not match",
+)
+
+
+def _ffmpeg_detail(stderr: str) -> str:
+    """Keep the few lines of ffmpeg's log that say what went wrong."""
+
+    lines = [line.strip() for line in str(stderr).splitlines()]
+    lines = [line for line in lines if line]
+
+    picked = [
+        line
+        for line in lines
+        if any(word in line.lower() for word in _FFMPEG_ERROR_WORDS)
+    ][-4:]
+
+    if not picked:
+        picked = lines[-3:]
+
+    return " | ".join(picked)[:500]
+
+
+def ffmpeg_failure(action: str, stderr: str) -> VideoToolError:
+    """Build an error from a failed ffmpeg run.
+
+    ``action`` finishes the sentence "Could not ...", for example
+    ``"join the clips"``. The long log goes in ``detail``.
+    """
+
+    lower = str(stderr).lower()
+    reason = "FFmpeg reported a problem."
+
+    for needles, plain in _FFMPEG_REASONS:
+        if any(needle in lower for needle in needles):
+            reason = plain
+            break
+
+    return VideoToolError(
+        f"Could not {action}. {reason}",
+        detail=_ffmpeg_detail(stderr),
+    )
+
+
+# ---------------------------------------------------------------------------
+# One translator for everything
+# ---------------------------------------------------------------------------
+
+
+def _name_of(exc: OSError) -> str:
+    """Name the file or folder an operating-system error is about."""
+
+    name = getattr(exc, "filename", None)
+
+    return f"'{name}'" if name else "that file or folder"
+
+
+def explain(exc: BaseException) -> ErrorInfo:
+    """Convert any exception into plain, actionable text.
+
+    ``level`` is one of ``info``, ``success``, ``warning`` or ``error``.
+    """
+
+    detail = getattr(exc, "detail", None)
+
+    # FFmpeg is missing
+    if isinstance(exc, MissingToolError):
+        return ErrorInfo(
+            level="error",
+            title="FFmpeg is missing",
+            message=str(exc) or "FFmpeg could not be found.",
+            hint="Install FFmpeg, then try again.",
+            code="missing_tool",
+            cli_hint="Make sure it is on your PATH.",
+        )
+
+    # A clip came out shorter than requested
+    if isinstance(exc, ClipLengthError):
+        path = getattr(exc, "path", None)
+
+        return ErrorInfo(
+            level="warning",
+            title="Clip is incomplete",
+            message=str(exc)
+            or "The clip is shorter than you asked for.",
+            hint=(
+                f"The incomplete file was kept at {path}."
+                if path
+                else "The incomplete file was kept so you can check it."
+            ),
+            code="clip_short",
+        )
+
+    # yt-dlp
+    if isinstance(exc, DownloadError):
+        return explain_download_error(exc)
+
+    # Something ran too long
+    if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)):
+        return ErrorInfo(
+            level="error",
+            title="Took too long",
+            message="The job ran for too long, so Video Tool stopped it.",
+            hint="Try a shorter clip, or try again.",
+            code="timeout",
+        )
+
+    # Operating-system errors. Errors Video Tool raises itself have no
+    # errno and already carry a plain message.
+    if isinstance(exc, PermissionError):
+        return ErrorInfo(
+            level="error",
+            title="Permission denied",
+            message=f"Video Tool is not allowed to use {_name_of(exc)}.",
+            hint="Choose a folder you can write to.",
+            code="permission",
+        )
+
+    if isinstance(exc, OSError) and getattr(exc, "errno", None) == 28:
+        return ErrorInfo(
+            level="error",
+            title="Disk is full",
+            message="There is no space left on the disk.",
+            hint="Free some space or pick another folder.",
+            code="disk_full",
+        )
+
+    if isinstance(exc, FileNotFoundError):
+        own_message = getattr(exc, "errno", None) is None and str(exc)
+
+        return ErrorInfo(
+            level="error",
+            title="File not found",
+            message=(
+                own_message
+                or f"Video Tool could not find {_name_of(exc)}."
+            ),
+            hint="Check that the file still exists.",
+            code="not_found",
+        )
+
+    # Errors Video Tool raises on purpose
+    if isinstance(exc, VideoToolError):
+        return ErrorInfo(
+            level="error",
+            title="Video Tool error",
+            message=str(exc) or "The job could not be finished.",
+            code="video_tool",
+            detail=detail,
+        )
+
+    # Bad input. Video Tool's own messages are already plain.
+    if isinstance(exc, ValueError):
+        return ErrorInfo(
+            level="error",
+            title="Invalid input",
+            message=str(exc) or "The input is not valid.",
+            code="invalid_input",
+        )
+
+    if isinstance(exc, OSError):
+        reason = getattr(exc, "strerror", None) or str(exc)
+
+        return ErrorInfo(
+            level="error",
+            title="File problem",
+            message=f"A file operation failed: {reason}".rstrip(": ")
+            if reason
+            else "A file operation failed.",
+            code="file_error",
+        )
+
+    # Last resort
+    return ErrorInfo(
+        level="error",
+        title="Unexpected error",
+        message="Something unexpected went wrong.",
+        hint="Try again. If it keeps happening, report the problem.",
+        code="unexpected",
+        detail=f"{type(exc).__name__}: {exc}".rstrip(": "),
+        cli_hint="Run again with --verbose for technical details.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Presentation
+# ---------------------------------------------------------------------------
+
+_SHOW_DETAIL_FOR = {"unexpected", "download_failed"}
+
+
+def format_cli(
+    info: ErrorInfo,
+    source: str | None = None,
+    *,
+    verbose: bool = False,
+) -> str:
+    """Return the lines the command line prints for an error."""
+
+    icon = "⚠️" if info.level == "warning" else "❌"
+    where = f" ({source})" if source else ""
+
+    lines = [f"{icon} {info.title}{where}", f"   {info.message}"]
+
+    advice = " ".join(
+        part for part in (info.hint, info.cli_hint) if part
+    )
+
+    if advice:
+        lines.append(f"   What to do: {advice}")
+
+    if info.detail and (verbose or info.code in _SHOW_DETAIL_FOR):
+        first = info.detail.splitlines()[0][:300]
+        lines.append(f"   Details: {first}")
+
+    return "\n".join(lines)
+
+
+def plain_message(exc: BaseException) -> str:
+    """Return the message and the advice for ``exc`` as one short text."""
+
+    info = explain(exc)
+
+    return " ".join(part for part in (info.message, info.hint) if part)
+
+
+def report_error(
+    exc: BaseException,
+    source: str | None = None,
+    *,
+    verbose: bool = False,
+) -> None:
+    """Print a plain-language error for ``exc``."""
+
+    print(format_cli(explain(exc), source, verbose=verbose))
+=== VERSIONS ===
+fastapi            0.142.4
+httpx              0.28.1
+pydantic           2.13.5
+pydantic_core      2.46.5
+starlette          1.7.0
+uvicorn            0.54.0
+yt-dlp             2026.8.19
+ffmpeg version 8.1.3 Copyright (c) 2000-2026 the FFmpeg developers
+=== ENV CHECK ===
+.gitignore:20:.env	.env
+=== DISK ===
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p6   92G   61G   30G  68% /home
+tmpfs           3.8G   85M  3.7G   3% /tmp

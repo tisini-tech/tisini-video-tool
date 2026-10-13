@@ -84,7 +84,8 @@ class VideoToolGUI(ctk.CTk):
         self._closing = False
 
         self._download_count = load_download_count()
-        self._ffmpeg_path: str | None = None
+        self._ffmpeg_path: str | None = None 
+        self._deno_path: str | None = None
 
         self._build_ui()
         self._update_counter()
@@ -610,6 +611,9 @@ class VideoToolGUI(ctk.CTk):
         if isinstance(result, dict) and result.get("ffmpeg"):
             self._ffmpeg_path = str(result["ffmpeg"])
 
+        if isinstance(result, dict) and result.get("deno"):
+            self._deno_path = str(result["deno"])
+
         if not self._ffmpeg_path:
             self._ffmpeg_path = shutil.which("ffmpeg")
 
@@ -805,6 +809,7 @@ class VideoToolGUI(ctk.CTk):
             format_type=format_type,
             quality=quality,
             ffmpeg_location=self._ffmpeg_path,
+            js_runtime_path=self._deno_path,
         )
 
         self._set_busy(True)

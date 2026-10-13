@@ -1,0 +1,1093 @@
+ M pyproject.toml
+?? api-dump.txt
+?? docs/
+?? src/video_tool/api/
+?? tests/api/
+4d9d26d Plain error messages, link cleaning, top-centre toasts
+82d1133 Merge branch 'main' of https://github.com/tisini-tech/tisini-video-tool
+1fff120 	modified:   .github/workflows/build-gui.yml
+c8bfac7 Delete .github/workflows/main.yml
+bf829c6 Remove unnecessary YAML code block from workflow
+e11e646 Merge branch 'main' of https://github.com/tisini-tech/tisini-video-tool
+80d3a65 	modified:   .github/workflows/build-gui.yml
+979316d Add GitHub Actions workflow for GUI build
+708cde7 Add GUI build workflow
+ae41c21 	modified:   src/video_tool/csv_prep.py
+c426dce 	modified:   README.md 	modified:   pyproject.toml 	modified:   src/video_tool/__main__.py 	modified:   src/video_tool/csv_prep.py 	new file:   src/video_tool/gui/__init__.py 	new file:   src/video_tool/gui/app.py 	new file:   src/video_tool/gui/bundled_deps.py 	modified:   src/video_tool/youtube.py 	new file:   tools/gui_entry.py
+21d189e 	modified:   .gitignore 	modified:   README.md 	deleted:    assets/Untitled2.jpg 	deleted:    assets/craiyon_103154_Minimalist_app_icon_of_the_letter_Y__corporate_tech_style__lower_tail_of_Y_is_a_clean_downward_downl.png 	deleted:    assets/favicon.ico 	modified:   config/default_config.json 	modified:   legacy/auto_compiler_v2_5_backup.py 	modified:   pyproject.toml 	new file:   requirements.txt 	modified:   scripts/manual/diagnose.py 	modified:   scripts/manual/diagnose2.py 	modified:   scripts/manual/gdrive_direct_url.py 	modified:   scripts/manual/gdrive_download.py 	modified:   scripts/manual/gdrive_parser.py 	modified:   scripts/manual/gdrive_probe.py 	modified:   scripts/manual/gdrive_trim.py 	new file:   src/video_tool/__init__.py 	renamed:    src/yfetch/__main__.py -> src/video_tool/__main__.py 	renamed:    src/yfetch/core.py -> src/video_tool/core.py 	new file:   src/video_tool/csv_prep.py 	renamed:    src/yfetch/gdrive/__init__.py -> src/video_tool/gdrive/__init__.py 	renamed:    src/yfetch/gdrive/parser.py -> src/video_tool/gdrive/parser.py 	renamed:    src/yfetch/gdrive/trimmer.py -> src/video_tool/gdrive/trimmer.py 	new file:   src/video_tool/version_check.py 	new file:   src/video_tool/versions/__init__.py 	renamed:    src/yfetch/versions/ai_finder.py -> src/video_tool/versions/ai_finder.py 	renamed:    src/yfetch/versions/auto_compiler.py -> src/video_tool/versions/auto_compiler.py 	renamed:    src/yfetch/versions/common_cli.py -> src/video_tool/versions/common_cli.py 	renamed:    src/yfetch/versions/merge_tool.py -> src/video_tool/versions/merge_tool.py 	renamed:    src/yfetch/versions/yfetch_basic.py -> src/video_tool/versions/video_tool_basic.py 	renamed:    src/yfetch/versions/yfetch_pro.py -> src/video_tool/versions/video_tool_pro.py 	renamed:    src/yfetch/versions/yfetch_unified.py -> src/video_tool/versions/video_tool_unified.py 	renamed:    src/yfetch/youtube.py -> src/video_tool/youtube.py 	deleted:    src/yfetch/__init__.py 	deleted:    src/yfetch/versions/__init__.py 	modified:   tests/ligi_ndogo.csv 	new file:   tests/match_events_export1_converted.csv 	modified:   tests/test_core.py 	modified:   tests/test_dummy.csv 	new file:   tests/video_tool.csv 	modified:   tools/build_exe.bat 	modified:   youtube_cookies.txt.example
+a5e29d4 	new file:   .gitignore 	new file:   .python-version 	new file:   assets/Untitled2.jpg     new file:   assets/craiyon_103154_Minimalist_app_icon_of_the_letter_Y__corporate_tech_style__lower_tail_of_Y_is_a_clean_downward_downl.png 	new file:   assets/favicon.ico 	new file:   config/default_config.json 	new file:   legacy/README.md 	new file:   legacy/auto_compiler_v2_5_backup.py 	new file:   pyproject.toml 	new file:   scripts/manual/diagnose.py 	new file:   scripts/manual/diagnose2.py 	new file:   scripts/manual/gdrive_direct_url.py 	new file:   scripts/manual/gdrive_download.py 	new file:   scripts/manual/gdrive_parser.py 	new file:   scripts/manual/gdrive_probe.py 	new file:   scripts/manual/gdrive_trim.py 	new file:   src/yfetch/__init__.py 	new file:   src/yfetch/__main__.py 	new file:   src/yfetch/core.py 	new file:   src/yfetch/gdrive/__init__.py 	new file:   src/yfetch/gdrive/parser.py 	new file:   src/yfetch/gdrive/trimmer.py 	new file:   src/yfetch/versions/__init__.py 	new file:   src/yfetch/versions/ai_finder.py 	new file:   src/yfetch/versions/auto_compiler.py 	new file:   src/yfetch/versions/common_cli.py 	new file:   src/yfetch/versions/merge_tool.py 	new file:   src/yfetch/versions/yfetch_basic.py 	new file:   src/yfetch/versions/yfetch_pro.py 	new file:   src/yfetch/versions/yfetch_unified.py 	new file:   src/yfetch/youtube.py 	new file:   tests/cape_verde.csv 	new file:   tests/ligi_ndogo.csv 	new file:   tests/test_core.py 	new file:   tests/test_dummy.csv 	new file:   tests/test_real.csv 	new file:   tools/README.md 	new file:   tools/build_exe.bat 	new file:   youtube_cookies.txt.example
+1d11d4f first commit
+=== WORK FOLDER ===
+find: ‘/tmp/video-tool-api’: No such file or directory
+=== API CODE ===
+##### src/video_tool/api/app.py
+"""Web routes. All work happens in jobs.py and runners.py."""
+
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
+
+from ..core import find_ffmpeg
+from .jobs import Job, JobStore, TooSoonError, UserBusyError
+from .runners import make_runners
+from .schemas import BasicJob
+from .security import Settings, key_matches, valid_user_id
+
+NOT_FOUND = {
+    "title": "Job not found",
+    "message": "There is no such job, or it has expired.",
+}
+
+
+def _view(job: Job) -> dict:
+    data = {
+        "id": job.id,
+        "tool": job.tool,
+        "status": job.status,
+        "progress": round(job.progress, 3),
+    }
+
+    if job.error:
+        data["error"] = job.error
+
+    if job.status == "done":
+        data["file_url"] = f"/v1/jobs/{job.id}/file"
+
+    return data
+
+
+def create_app(
+    settings: Settings,
+    runners: dict | None = None,
+    *,
+    janitor: bool = True,
+    test_page: bool = False,
+) -> FastAPI:
+    store = JobStore(
+        settings.work_dir,
+        runners or make_runners(settings),
+        max_workers=settings.max_workers,
+        ttl=settings.ttl,
+        limits=settings.limits,
+        janitor=janitor,
+    )
+
+    @asynccontextmanager
+    async def lifespan(_app):
+        yield
+        store.shutdown()
+
+    app = FastAPI(title="Video Tool API", lifespan=lifespan)
+    app.state.store = store
+
+    def who(
+        x_api_key: str = Header(default=""),
+        x_user_id: str = Header(default=""),
+    ) -> str:
+        if not key_matches(x_api_key, settings.api_key):
+            raise HTTPException(401, {"title": "Not allowed", "message": "The API key is missing or wrong."})
+
+        if not valid_user_id(x_user_id):
+            raise HTTPException(400, {"title": "Bad user ID", "message": "Send X-User-Id with 1 to 64 letters, digits or . _ @ -"})
+
+        return x_user_id
+
+    def own(user: str, job_id: str) -> Job:
+        job = store.get(user, job_id)
+
+        if job is None:
+            raise HTTPException(404, NOT_FOUND)
+
+        return job
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse("/docs")
+
+    @app.get("/v1/health")
+    def health() -> dict:
+        return {"status": "ok", "ffmpeg": bool(find_ffmpeg())}
+
+    @app.post("/v1/jobs", status_code=202)
+    def create_job(body: BasicJob, user: str = Depends(who)) -> dict:
+        try:
+            job = store.submit(user, body.tool, body.params())
+        except UserBusyError:
+            raise HTTPException(429, {"title": "A job is already running", "message": "Wait for your current job to finish, then start the next."})
+        except TooSoonError as exc:
+            raise HTTPException(
+                429,
+                {
+                    "title": exc.title,
+                    "message": exc.message,
+                    "retry_after": exc.retry_after,
+                },
+                headers={"Retry-After": str(exc.retry_after)},
+            )
+
+        return _view(job)
+
+    @app.get("/v1/jobs/{job_id}")
+    def job_status(job_id: str, user: str = Depends(who)) -> dict:
+        return _view(own(user, job_id))
+
+    @app.get("/v1/jobs/{job_id}/file")
+    def job_file(job_id: str, user: str = Depends(who)):
+        job = own(user, job_id)
+
+        if job.status != "done" or not job.file or not job.file.is_file():
+            raise HTTPException(409, {"title": "No file yet", "message": "The job has not produced a file."})
+
+        return FileResponse(job.file, filename=job.file.name)
+
+    @app.delete("/v1/jobs/{job_id}")
+    def delete_job(job_id: str, user: str = Depends(who)) -> dict:
+        result = store.delete(user, job_id)
+
+        if result == "missing":
+            raise HTTPException(404, NOT_FOUND)
+
+        if result == "busy":
+            raise HTTPException(409, {"title": "Job is running", "message": "A running job cannot be stopped yet. Delete it after it ends."})
+
+        return {"deleted": job_id}
+
+    if test_page:
+        from .testpage import add_test_page
+
+        add_test_page(app)
+
+    return app
+##### src/video_tool/api/cli.py
+"""The vt-api command."""
+
+from __future__ import annotations
+
+import argparse
+
+from .security import Settings
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run the Video Tool API.")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument(
+        "--test-page",
+        action="store_true",
+        help="Serve a test page at /test. For testing only.",
+    )
+    args = parser.parse_args(argv)
+
+    settings = Settings.from_env()
+
+    if not settings.api_key:
+        print("Set VT_API_KEY to a long secret text first, then run again.")
+        return 1
+
+    try:
+        import uvicorn
+
+        from .app import create_app
+    except ImportError:
+        print('The API needs extra packages. Run: pip install -e ".[api]"')
+        return 1
+
+    if args.test_page:
+        print("Test page is on. Open /test in a browser. Testing only.")
+
+    uvicorn.run(
+        create_app(settings, test_page=args.test_page),
+        host=args.host,
+        port=args.port,
+    )
+
+    return 0
+##### src/video_tool/api/__init__.py
+"""Web API for Video Tool. Needs: pip install -e ".[api]"."""
+##### src/video_tool/api/jobs.py
+"""Job store and workers. No web code lives here.
+
+Rules kept here:
+
+- one waiting or running job per user
+- a limit on jobs per hour, counting every attempt
+- a pause after several failures in a row
+- a link that failed for a fixed reason is remembered for a short time
+- a running job that goes over its time limit is stopped
+- a failed job loses its folder at once, a finished one after ``ttl``
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import math
+import re
+import secrets
+import shutil
+import threading
+import time
+from collections import deque
+from collections.abc import Callable, Mapping
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from ..errors import ErrorInfo, explain
+from .security import Limits
+
+logger = logging.getLogger(__name__)
+
+ACTIVE = ("queued", "running")
+
+# Job folders are named by secrets.token_urlsafe(16). Only folders with
+# such a name are ever deleted at start-up.
+FOLDER_NAME = re.compile(r"^[A-Za-z0-9_-]{22}$")
+
+# Causes that repeat for the same link, so a second try can skip YouTube.
+REMEMBER = {
+    "private", "unavailable", "bad_link", "invalid_link",
+    "unsupported_site", "age_restricted", "region", "copyright",
+    "http_404",
+}
+
+# Codes that mean Video Tool has no rule for the cause. These keep the
+# full traceback in the log.
+UNEXPECTED = {"unexpected", "download_failed"}
+
+# A runner gets (params, job folder, progress callback) and returns a file.
+Runner = Callable[[dict, Path, Callable[[float], None]], Path]
+
+
+class UserBusyError(Exception):
+    """The user already has a job waiting or running."""
+
+
+class TooSoonError(Exception):
+    """A limit stops this request for now. Try again later."""
+
+    def __init__(self, title: str, message: str, retry_after: float):
+        super().__init__(message)
+        self.title = title
+        self.message = message
+        self.retry_after = int(math.ceil(retry_after))
+
+
+class UnknownToolError(ValueError):
+    """No runner exists for this tool."""
+
+
+class JobStopped(Exception):
+    """Raised inside a runner when its job was stopped from outside."""
+
+
+@dataclass
+class Job:
+    id: str
+    user: str
+    tool: str
+    folder: Path
+    status: str = "queued"
+    progress: float = 0.0
+    created: float = 0.0
+    started: float | None = None
+    finished: float | None = None
+    file: Path | None = None
+    error: dict | None = None
+
+
+@dataclass
+class _User:
+    attempts: deque = field(default_factory=deque)
+    streak: int = 0
+    paused_until: float = 0.0
+
+
+def _error_dict(info: ErrorInfo) -> dict:
+    """Plain text only. detail and cli_hint stay in the server log."""
+
+    return {
+        "level": info.level,
+        "title": info.title,
+        "message": info.message,
+        "hint": info.hint,
+        "code": info.code,
+    }
+
+
+def _wait_text(seconds: float) -> str:
+    minutes = max(1, math.ceil(seconds / 60))
+
+    return f"{minutes} minute" + ("" if minutes == 1 else "s")
+
+
+class JobStore:
+    def __init__(
+        self,
+        work_dir: Path,
+        runners: Mapping[str, Runner],
+        *,
+        max_workers: int = 2,
+        ttl: int = 3600,
+        limits: Limits | None = None,
+        clock: Callable[[], float] = time.time,
+        janitor: bool = False,
+    ) -> None:
+        self.work_dir = Path(work_dir)
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+        self.ttl = ttl
+        self.limits = limits or Limits()
+        self._runners = dict(runners)
+        self._clock = clock
+        self._jobs: dict[str, Job] = {}
+        self._users: dict[str, _User] = {}
+        self._failed_links: dict[str, tuple[float, dict]] = {}
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._pool = ThreadPoolExecutor(max_workers=max_workers)
+
+        self._remove_old_folders()
+
+        if janitor:
+            threading.Thread(target=self._janitor, daemon=True).start()
+
+    # ------------------------------------------------------------ public
+
+    def submit(self, user: str, tool: str, params: dict) -> Job:
+        if tool not in self._runners:
+            raise UnknownToolError(tool)
+
+        key = json.dumps([tool, params], sort_keys=True)
+
+        with self._lock:
+            self._sweep_locked()
+            now = self._clock()
+
+            if any(
+                j.user == user and j.status in ACTIVE
+                for j in self._jobs.values()
+            ):
+                raise UserBusyError(user)
+
+            state = self._users.setdefault(user, _User())
+            self._check_limits(state, now)
+            state.attempts.append(now)
+
+            job_id = secrets.token_urlsafe(16)
+            folder = self.work_dir / job_id
+            remembered = self._failed_links.get(key)
+
+            if remembered and remembered[0] > now:
+                job = Job(
+                    job_id, user, tool, folder,
+                    status="failed", created=now, finished=now,
+                    error=remembered[1],
+                )
+                self._jobs[job_id] = job
+                self._count_failure(state, now)
+
+                return job
+
+            folder.mkdir(parents=True, exist_ok=True)
+            job = Job(job_id, user, tool, folder, created=now)
+            self._jobs[job_id] = job
+
+        self._pool.submit(self._work, job_id, key, params)
+
+        return job
+
+    def get(self, user: str, job_id: str) -> Job | None:
+        with self._lock:
+            self._sweep_locked()
+            job = self._jobs.get(job_id)
+
+            return job if job and job.user == user else None
+
+    def delete(self, user: str, job_id: str) -> str:
+        """Return "deleted", "missing" or "busy"."""
+
+        with self._lock:
+            job = self._jobs.get(job_id)
+
+            if job is None or job.user != user:
+                return "missing"
+
+            if job.status == "running":
+                return "busy"
+
+            del self._jobs[job_id]
+
+        shutil.rmtree(job.folder, ignore_errors=True)
+
+        return "deleted"
+
+    def sweep(self) -> None:
+        """Expire old jobs, stop slow ones, forget old failures."""
+
+        with self._lock:
+            self._sweep_locked()
+
+    def shutdown(self) -> None:
+        self._stop.set()
+        self._pool.shutdown(wait=False, cancel_futures=True)
+
+    # ----------------------------------------------------------- limits
+
+    def _check_limits(self, state: _User, now: float) -> None:
+        cutoff = now - 3600
+
+        while state.attempts and state.attempts[0] <= cutoff:
+            state.attempts.popleft()
+
+        if state.paused_until > now:
+            wait = state.paused_until - now
+
+            raise TooSoonError(
+                "Too many failed jobs",
+                "Several jobs in a row failed. "
+                f"Try again in {_wait_text(wait)}.",
+                wait,
+            )
+
+        if len(state.attempts) >= self.limits.per_hour:
+            wait = state.attempts[0] + 3600 - now
+
+            raise TooSoonError(
+                "Hourly limit reached",
+                f"You can start {self.limits.per_hour} jobs an hour. "
+                f"Try again in {_wait_text(wait)}.",
+                wait,
+            )
+
+    def _count_failure(self, state: _User, now: float) -> None:
+        state.streak += 1
+
+        if state.streak >= self.limits.fail_streak:
+            state.paused_until = now + self.limits.fail_pause
+            state.streak = 0
+
+    # ----------------------------------------------------------- worker
+
+    def _work(self, job_id: str, key: str, params: dict) -> None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+
+            if job is None or job.status != "queued":
+                return
+
+            job.status = "running"
+            job.started = self._clock()
+
+        def progress(value: float) -> None:
+            if job.status != "running":
+                raise JobStopped()
+
+            job.progress = max(0.0, min(1.0, float(value)))
+
+        try:
+            path = self._runners[job.tool](params, job.folder, progress)
+        except Exception as exc:
+            self._finish_failed(job, key, exc)
+        else:
+            self._finish_done(job, path)
+
+    def _finish_failed(self, job: Job, key: str, exc: Exception) -> None:
+        if isinstance(exc, JobStopped):
+            shutil.rmtree(job.folder, ignore_errors=True)
+            return
+
+        info = explain(exc)
+
+        if info.code in UNEXPECTED:
+            logger.error("Job %s failed", job.id, exc_info=exc)
+        else:
+            logger.warning(
+                "Job %s failed: %s (%s)", job.id, info.title, info.code
+            )
+
+        error = _error_dict(info)
+
+        with self._lock:
+            if job.status == "running":
+                now = self._clock()
+                job.error = error
+                job.status = "failed"
+                job.finished = now
+
+                if info.code in REMEMBER:
+                    self._failed_links[key] = (
+                        now + self.limits.fail_memory,
+                        error,
+                    )
+
+                self._count_failure(
+                    self._users.setdefault(job.user, _User()), now
+                )
+
+        # A failed job keeps no files. The error is enough.
+        shutil.rmtree(job.folder, ignore_errors=True)
+
+    def _finish_done(self, job: Job, path: Path) -> None:
+        with self._lock:
+            if job.status != "running":  # stopped while it ran
+                stopped = True
+            else:
+                stopped = False
+                job.file = Path(path)
+                job.progress = 1.0
+                job.status = "done"
+                job.finished = self._clock()
+                self._users.setdefault(job.user, _User()).streak = 0
+
+        if stopped:
+            shutil.rmtree(job.folder, ignore_errors=True)
+
+    # ---------------------------------------------------------- tidying
+
+    def _sweep_locked(self) -> None:
+        now = self._clock()
+
+        for job_id, job in list(self._jobs.items()):
+            if job.finished is not None and now - job.finished > self.ttl:
+                shutil.rmtree(job.folder, ignore_errors=True)
+                del self._jobs[job_id]
+
+            elif (
+                job.status == "running"
+                and job.started is not None
+                and now - job.started > self.limits.job_timeout
+            ):
+                info = explain(TimeoutError())
+                logger.warning(
+                    "Job %s stopped: over %s seconds",
+                    job.id, self.limits.job_timeout,
+                )
+                job.error = _error_dict(info)
+                job.status = "failed"
+                job.finished = now
+                self._count_failure(
+                    self._users.setdefault(job.user, _User()), now
+                )
+
+        for key, (until, _) in list(self._failed_links.items()):
+            if until <= now:
+                del self._failed_links[key]
+
+        for user, state in list(self._users.items()):
+            while state.attempts and state.attempts[0] <= now - 3600:
+                state.attempts.popleft()
+
+            if (
+                not state.attempts
+                and state.streak == 0
+                and state.paused_until <= now
+            ):
+                del self._users[user]
+
+    def _remove_old_folders(self) -> None:
+        for child in self.work_dir.iterdir():
+            if child.is_dir() and FOLDER_NAME.match(child.name):
+                shutil.rmtree(child, ignore_errors=True)
+
+    def _janitor(self) -> None:
+        while not self._stop.wait(self.limits.sweep_every):
+            try:
+                self.sweep()
+            except Exception:
+                logger.exception("Tidy-up failed")
+##### src/video_tool/api/runners.py
+"""One function per tool. Each job works in its own folder.
+
+The API never reads or writes the shared download cache or the download
+counter, so it cannot disturb the CLI or the GUI.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from ..clip_source import fetch_clip
+from ..youtube import DownloadOptions
+from .security import Settings
+
+
+def make_runners(settings: Settings) -> dict:
+    def run_basic(params: dict, folder: Path, progress) -> Path:
+        def hook(data: dict) -> None:
+            if data.get("status") != "downloading":
+                return
+
+            total = data.get("total_bytes") or data.get("total_bytes_estimate")
+
+            if total:
+                progress(min(data.get("downloaded_bytes", 0) / total, 0.99))
+
+        options = DownloadOptions(
+            output_dir=str(folder),
+            format_type=params["format"],
+            quality=params["quality"],
+            cookie_file=settings.cookie_file,
+            progress_hook=hook,
+        )
+
+        path, _ = fetch_clip(
+            params["url"],
+            folder,
+            None,
+            None,
+            options,
+            full_download=True,
+            keep_original=True,
+            no_cache=True,
+        )
+
+        return path
+
+    return {"basic": run_basic}
+##### src/video_tool/api/schemas.py
+"""Request shapes."""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator
+
+from ..versions.common_cli import clean_url, is_valid_youtube_url
+
+
+class BasicJob(BaseModel):
+    tool: Literal["basic"]
+    url: str
+    format: Literal["MP4", "MP3"] = "MP4"
+    quality: str = Field("Best", pattern=r"^[A-Za-z0-9 ]{1,12}$")
+
+    @field_validator("url")
+    @classmethod
+    def _check_url(cls, value: str) -> str:
+        value = clean_url(value)
+
+        if not is_valid_youtube_url(value):
+            raise ValueError("This is not a YouTube link.")
+
+        return value
+
+    def params(self) -> dict:
+        return {
+            "url": self.url,
+            "format": self.format,
+            "quality": self.quality,
+        }
+##### src/video_tool/api/security.py
+"""Settings, limits, API key check and user ID check."""
+
+from __future__ import annotations
+
+import hmac
+import os
+import re
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from dotenv import find_dotenv, load_dotenv
+
+_USER_ID = re.compile(r"^[A-Za-z0-9_.@-]{1,64}$")
+
+
+def _number(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, default))
+    except ValueError:
+        return default
+
+
+@dataclass(frozen=True)
+class Limits:
+    """Rules that protect the server. Times are in seconds."""
+
+    per_hour: int = 10       # jobs one user may start in an hour
+    fail_streak: int = 3     # failures in a row before a pause
+    fail_pause: int = 300    # length of that pause
+    fail_memory: int = 300   # how long a failed link is remembered
+    job_timeout: int = 900   # longest a job may run
+    sweep_every: int = 30    # how often the server tidies up
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Server settings. Requests never change these."""
+
+    api_key: str
+    work_dir: Path = Path(tempfile.gettempdir()) / "video-tool-api"
+    cookie_file: str | None = None
+    ttl: int = 3600
+    max_workers: int = 2
+    limits: Limits = field(default_factory=Limits)
+
+    @classmethod
+    def from_env(cls) -> "Settings":
+        load_dotenv(find_dotenv(usecwd=True), override=True)
+
+        return cls(
+            api_key=os.environ.get("VT_API_KEY", ""),
+            work_dir=Path(
+                os.environ.get("VT_API_WORK")
+                or Path(tempfile.gettempdir()) / "video-tool-api"
+            ),
+            cookie_file=os.environ.get("VT_API_COOKIE_FILE") or None,
+            ttl=_number("VT_API_TTL", 3600),
+            max_workers=_number("VT_API_WORKERS", 2),
+            limits=Limits(
+                per_hour=_number("VT_API_PER_HOUR", 10),
+                fail_streak=_number("VT_API_FAIL_STREAK", 3),
+                fail_pause=_number("VT_API_FAIL_PAUSE", 300),
+                fail_memory=_number("VT_API_FAIL_MEMORY", 300),
+                job_timeout=_number("VT_API_JOB_TIMEOUT", 900),
+            ),
+        )
+
+
+def key_matches(given: str, expected: str) -> bool:
+    return bool(expected) and hmac.compare_digest(
+        given.encode(), expected.encode()
+    )
+
+
+def valid_user_id(value: str) -> bool:
+    return bool(_USER_ID.match(value))
+##### src/video_tool/api/testpage.py
+"""A test page for the API. Off unless started with --test-page.
+
+The page asks for the API key when it is used. The key is never written
+into the page and is never saved. Use this page for testing only. On a real
+site the key stays on the site's server.
+"""
+
+from __future__ import annotations
+
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+
+PAGE = r"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Tool API: test page</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #1e1e1e; color: #eee; margin: 0; }
+  main { max-width: 34rem; margin: 2rem auto; padding: 0 1rem; }
+  label { display: block; margin: 0.8rem 0 0.2rem; font-size: 0.9rem; }
+  input, select { width: 100%; box-sizing: border-box; padding: 0.55rem; border-radius: 6px;
+                  border: 1px solid #555; background: #2b2b2b; color: #eee; font-size: 1rem; }
+  button { margin-top: 1rem; padding: 0.65rem 1.4rem; border: 0; border-radius: 6px;
+           background: #1f6aa5; color: #fff; font-size: 1rem; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  progress { width: 100%; margin-top: 1rem; }
+  #status { white-space: pre-line; margin-top: 1rem; }
+  .bad { color: #ff8080; }
+  .note { color: #aaa; font-size: 0.85rem; }
+  a { color: #7cc4ff; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Video Tool API: test page</h1>
+  <p class="note">For testing only. The key stays in this page and is never saved.</p>
+
+  <label for="key">API key</label>
+  <input id="key" type="password" autocomplete="off">
+
+  <label for="user">User name</label>
+  <input id="user" value="tester" autocomplete="off">
+
+  <label for="url">YouTube link</label>
+  <input id="url" placeholder="https://youtu.be/..." autocomplete="off">
+
+  <label for="fmt">Format</label>
+  <select id="fmt"><option>MP4</option><option>MP3</option></select>
+
+  <button id="go">Start</button>
+  <progress id="bar" max="1" value="0" hidden></progress>
+  <p id="status" role="status"></p>
+  <p id="out"></p>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+let busy = false;
+
+function say(text, bad) {
+  const line = $("status");
+  line.textContent = text;
+  line.className = bad ? "bad" : "";
+}
+
+function headers() {
+  return { "X-API-Key": $("key").value.trim(), "X-User-Id": $("user").value.trim() };
+}
+
+async function problem(reply) {
+  let detail = null;
+  try { detail = (await reply.json()).detail; } catch (e) { /* no body */ }
+
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    return [detail.title, detail.message].filter(Boolean).join(": ");
+  }
+  if (Array.isArray(detail) && detail.length) {
+    return "The server refused the request: " + (detail[0].msg || "the input is not valid");
+  }
+  return "The server answered with code " + reply.status + ".";
+}
+
+function fileName(reply, fallback) {
+  const note = reply.headers.get("content-disposition") || "";
+  let found = note.match(/filename\*=utf-8''([^;]+)/i);
+
+  if (found) {
+    try { return decodeURIComponent(found[1]); } catch (e) { /* use next rule */ }
+  }
+
+  found = note.match(/filename="?([^";]+)"?/i);
+
+  return found ? found[1] : fallback;
+}
+
+async function run() {
+  if (busy) return;
+
+  busy = true;
+  $("go").disabled = true;
+  $("out").textContent = "";
+  $("bar").hidden = true;
+
+  try {
+    const start = await fetch("/v1/jobs", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ tool: "basic", url: $("url").value.trim(), format: $("fmt").value }),
+    });
+
+    if (start.status !== 202) {
+      say(await problem(start), true);
+      return;
+    }
+
+    let job = await start.json();
+    $("bar").hidden = false;
+
+    while (job.status === "queued" || job.status === "running") {
+      $("bar").value = job.progress;
+      say("Job " + job.status + ": " + Math.round(job.progress * 100) + "%");
+      await sleep(2000);
+
+      const check = await fetch("/v1/jobs/" + job.id, { headers: headers() });
+
+      if (!check.ok) {
+        say(await problem(check), true);
+        return;
+      }
+
+      job = await check.json();
+    }
+
+    if (job.status === "failed") {
+      const e = job.error;
+      say([e.title, e.message, e.hint ? "What to do: " + e.hint : ""].filter(Boolean).join("\n"), true);
+      return;
+    }
+
+    const file = await fetch(job.file_url, { headers: headers() });
+
+    if (!file.ok) {
+      say(await problem(file), true);
+      return;
+    }
+
+    const blob = await file.blob();
+    const name = fileName(file, "video-tool-" + job.id.slice(0, 8) + "." + $("fmt").value.toLowerCase());
+    const link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+    link.download = name;
+    link.textContent = "Save " + name;
+    $("out").replaceChildren(link);
+    say("Done.");
+  } catch (e) {
+    say("Cannot reach the API. Is vt-api running?", true);
+  } finally {
+    busy = false;
+    $("go").disabled = false;
+  }
+}
+
+$("go").addEventListener("click", run);
+</script>
+</body>
+</html>
+"""
+
+
+def add_test_page(app: FastAPI) -> None:
+    """Add GET /test to ``app``."""
+
+    @app.get("/test", response_class=HTMLResponse, include_in_schema=False)
+    def test_page() -> HTMLResponse:
+        return HTMLResponse(PAGE)
+##### src/video_tool/api/try_it.py
+"""vt-api-try: start one job on a running API and save the file."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import time
+from email.message import Message
+from pathlib import Path
+
+import httpx
+from dotenv import find_dotenv, load_dotenv
+
+
+def _problem(reply: httpx.Response) -> str:
+    try:
+        detail = reply.json().get("detail")
+    except Exception:
+        detail = None
+
+    if isinstance(detail, dict):
+        return "\n".join(
+            part for part in (detail.get("title"), detail.get("message"))
+            if part
+        )
+
+    if isinstance(detail, list) and detail:
+        return (
+            "The server refused the request: "
+            f"{detail[0].get('msg', 'the input is not valid')}"
+        )
+
+    return f"The server answered with code {reply.status_code}."
+
+
+def _server_name(reply: httpx.Response, fallback: str) -> str:
+    """The file name the server chose, cut down to a bare name."""
+
+    note = Message()
+    note["content-disposition"] = reply.headers.get(
+        "content-disposition", ""
+    )
+    name = Path(note.get_filename() or "").name.strip()
+
+    return name or fallback
+
+
+def _free_name(folder: Path, name: str, tag: str) -> Path:
+    """Return a path in ``folder`` that does not overwrite a file."""
+
+    target = folder / name
+
+    if target.exists():
+        target = folder / f"{target.stem} ({tag}){target.suffix}"
+
+    return target
+
+
+def run(
+    link: str,
+    client: httpx.Client,
+    out_dir: Path,
+    *,
+    fmt: str = "MP4",
+    pause: float = 2.0,
+) -> int:
+    start = client.post(
+        "/v1/jobs",
+        json={"tool": "basic", "url": link, "format": fmt},
+    )
+
+    if start.status_code != 202:
+        print(_problem(start))
+        return 1
+
+    job = start.json()
+    last = -1
+
+    while job["status"] in ("queued", "running"):
+        percent = int(job["progress"] * 100)
+
+        if percent != last:
+            print(f"  {job['status']}: {percent}%")
+            last = percent
+
+        time.sleep(pause)
+        job = client.get(f"/v1/jobs/{job['id']}").json()
+
+    if job["status"] == "failed":
+        error = job["error"]
+        print(error["title"])
+        print(f"  {error['message']}")
+
+        if error.get("hint"):
+            print(f"  What to do: {error['hint']}")
+
+        return 1
+
+    reply = client.get(job["file_url"])
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    target = _free_name(
+        out_dir,
+        _server_name(reply, f"video-tool-{job['id'][:8]}.{fmt.lower()}"),
+        job["id"][:8],
+    )
+    target.write_bytes(reply.content)
+    print(f"Saved: {target}")
+
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    load_dotenv(find_dotenv(usecwd=True), override=True)
+
+    parser = argparse.ArgumentParser(
+        description="Try the Video Tool API with one link."
+    )
+    parser.add_argument("link", help="A YouTube link")
+    parser.add_argument(
+        "--server",
+        default=os.environ.get("VT_API_URL", "http://127.0.0.1:8000"),
+    )
+    parser.add_argument("--key", default=os.environ.get("VT_API_KEY", ""))
+    parser.add_argument("--user", default="tester")
+    parser.add_argument("--format", default="MP4", choices=["MP4", "MP3"])
+    parser.add_argument("--out", default=".", help="Folder for the file")
+    args = parser.parse_args(argv)
+
+    if not args.key:
+        print("No API key. Put VT_API_KEY in the .env file, or pass --key.")
+        return 1
+
+    client = httpx.Client(
+        base_url=args.server,
+        headers={"X-API-Key": args.key, "X-User-Id": args.user},
+        timeout=60,
+    )
+
+    try:
+        return run(args.link, client, Path(args.out), fmt=args.format)
+    except httpx.ConnectError:
+        print(f"Cannot reach the API at {args.server}.")
+        print("Start it in another window with: vt-api")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

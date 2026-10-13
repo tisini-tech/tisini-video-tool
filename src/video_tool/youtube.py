@@ -79,6 +79,7 @@ class DownloadOptions:
     progress_hook: ProgressHook | None = None
     remote_components: list[str] | None = None
     ffmpeg_location: str | None = None
+    js_runtime_path: str | None = None
 
     # Range download. Leave both as None to fetch the whole video.
     section_start: float | None = None
@@ -345,11 +346,20 @@ def build_ydl_options(
             options.ffmpeg_location
         )
 
+    # Use the app-managed Deno executable when provided.
+    if options.js_runtime_path:
+        ydl_options["js_runtimes"] = {
+            "deno": {
+                "path": options.js_runtime_path,
+            }
+        }
+    ydl_options["remote_components"] = ["ejs:npm"]
+
     _apply_auth_options(
         ydl_options,
         options,
     )
-
+   
     if options.format_type.upper() == "MP3":
         ydl_options["format"] = "bestaudio/best"
         ydl_options["postprocessors"] = [

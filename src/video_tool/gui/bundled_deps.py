@@ -6,10 +6,12 @@ from __future__ import annotations
 import json
 import logging
 import platform
+import re
 import shutil
 import stat
 import subprocess
 import tarfile
+import time
 import zipfile
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -102,7 +104,11 @@ def _save_state(state: dict) -> None:
     temporary.replace(STATE_PATH)
 
 
-def _due_for_check(state: dict, key: str) -> bool:
+def _due_for_check(
+    state: dict,
+    key: str,
+    interval_hours: int = VERSION_CHECK_INTERVAL_HOURS,
+) -> bool:
     last = state.get(key)
     if not last:
         return True
@@ -110,7 +116,7 @@ def _due_for_check(state: dict, key: str) -> bool:
     try:
         checked_at = datetime.fromisoformat(last)
         return datetime.now() - checked_at >= timedelta(
-            hours=VERSION_CHECK_INTERVAL_HOURS
+            hours=interval_hours
         )
     except (TypeError, ValueError):
         return True
@@ -131,33 +137,90 @@ def _download(
     destination: Path,
     progress_callback: ProgressCallback = None,
 ) -> bool:
-    """Download to a temporary file, retrying failures without replacing the destination."""
-    temporary = destination.with_name(destination.name + ".download")
-    max_attempts = 3
+    """Download a file, resuming a partial transfer after network failures.
 
+    The partial file is deliberately retained after a failed attempt and
+    between application launches. If the server supports HTTP Range requests,
+    the next attempt continues from the last byte already written. If it does
+    not support ranges, a normal HTTP 200 response safely restarts the file.
+    """
+    temporary = destination.with_name(destination.name + ".download")
+    max_attempts = 8
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     for attempt in range(1, max_attempts + 1):
-        try:
-            temporary.unlink(missing_ok=True)
+        existing_size = temporary.stat().st_size if temporary.exists() else 0
+        headers = {
+            "User-Agent": "Video-Tool-GUI",
+            "Accept-Encoding": "identity",
+        }
+        if existing_size:
+            headers["Range"] = f"bytes={existing_size}-"
+            _report(
+                progress_callback,
+                f"Resuming {destination.name} from {existing_size / (1024 * 1024):.1f} MiB...",
+            )
 
+        try:
+            expected_total: int | None = None
             with requests.get(
                 url,
                 stream=True,
                 timeout=(30, 600),
-                headers={"User-Agent": "Video-Tool-GUI"},
+                headers=headers,
             ) as response:
-                response.raise_for_status()
+                # A stale partial may be larger than the asset currently served.
+                # Clear it and retry once from byte zero.
+                if response.status_code == 416 and existing_size:
+                    temporary.unlink(missing_ok=True)
+                    raise RuntimeError(
+                        "The server rejected the resume offset; restarting the download"
+                    )
 
-                with temporary.open("wb") as output:
-                    for chunk in response.iter_content(
-                        chunk_size=1024 * 256
-                    ):
+                if response.status_code == 206:
+                    content_range = response.headers.get("Content-Range", "")
+                    match = re.match(
+                        r"^bytes\s+(\d+)-(\d+)/(\d+|\*)$",
+                        content_range.strip(),
+                        flags=re.IGNORECASE,
+                    )
+                    if not match or int(match.group(1)) != existing_size:
+                        # Never append bytes unless the server confirms the exact
+                        # starting offset. The next attempt starts cleanly.
+                        temporary.unlink(missing_ok=True)
+                        raise RuntimeError(
+                            "The server returned an invalid Content-Range header"
+                        )
+
+                    mode = "ab" if existing_size else "wb"
+                    total_text = match.group(3)
+                    if total_text != "*":
+                        expected_total = int(total_text)
+                    else:
+                        response_length = response.headers.get("Content-Length")
+                        if response_length and response_length.isdigit():
+                            expected_total = existing_size + int(response_length)
+                else:
+                    response.raise_for_status()
+                    # Some servers ignore Range and return the entire asset (200).
+                    # Opening with wb truncates the partial instead of duplicating it.
+                    mode = "wb"
+                    response_length = response.headers.get("Content-Length")
+                    if response_length and response_length.isdigit():
+                        expected_total = int(response_length)
+
+                with temporary.open(mode) as output:
+                    for chunk in response.iter_content(chunk_size=1024 * 256):
                         if chunk:
                             output.write(chunk)
 
-            if not temporary.exists() or temporary.stat().st_size == 0:
+            actual_size = temporary.stat().st_size if temporary.exists() else 0
+            if actual_size == 0:
                 raise RuntimeError("The downloaded file is empty")
+            if expected_total is not None and actual_size != expected_total:
+                raise RuntimeError(
+                    f"Incomplete download: received {actual_size} of {expected_total} bytes"
+                )
 
             temporary.replace(destination)
             return True
@@ -170,16 +233,22 @@ def _download(
                 url,
                 exc_info=True,
             )
-            temporary.unlink(missing_ok=True)
-
+            # Do not delete the .download file: it is the resume checkpoint.
             if attempt < max_attempts:
+                delay = min(2 ** (attempt - 1), 30)
                 _report(
                     progress_callback,
-                    f"Download failed; retrying ({attempt + 1}/{max_attempts})...",
+                    "Download interrupted; preserving received data and "
+                    f"retrying in {delay}s ({attempt + 1}/{max_attempts})...",
                 )
+                time.sleep(delay)
 
+    _report(
+        progress_callback,
+        f"Could not finish downloading {destination.name}. The partial file "
+        "has been kept so a later attempt can resume it.",
+    )
     return False
-
 
 def _works(path: Path, argument: str = "--version") -> bool:
     """Check that a downloaded executable actually runs."""
@@ -456,7 +525,7 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
     BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
     target = BUNDLE_DIR / _binary_name("ffmpeg")
     state = _load_state()
-    due = _due_for_check(state, "ffmpeg_checked_at")
+    due = _due_for_check(state, "ffmpeg_checked_at", interval_hours=168)
 
     if target.exists() and not _works(target):
         target.unlink(missing_ok=True)

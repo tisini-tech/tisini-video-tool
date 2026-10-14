@@ -142,6 +142,7 @@ def _download(
     """
     temporary = destination.with_name(destination.name + ".download")
     max_attempts = 8
+    last_error = "Unknown download error"
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     for attempt in range(1, max_attempts + 1):
@@ -207,10 +208,33 @@ def _download(
                     if response_length and response_length.isdigit():
                         expected_total = int(response_length)
 
+                last_progress_bucket = -1
                 with temporary.open(mode) as output:
                     for chunk in response.iter_content(chunk_size=1024 * 256):
-                        if chunk:
-                            output.write(chunk)
+                        if not chunk:
+                            continue
+
+                        output.write(chunk)
+                        received = output.tell()
+                        progress_bucket = received // (32 * 1024 * 1024)
+
+                        if progress_bucket > last_progress_bucket:
+                            last_progress_bucket = progress_bucket
+                            received_mb = received / (1024 * 1024)
+
+                            if expected_total:
+                                total_mb = expected_total / (1024 * 1024)
+                                message = (
+                                    f"Downloading {destination.name}: "
+                                    f"{received_mb:.0f} / {total_mb:.0f} MiB"
+                                )
+                            else:
+                                message = (
+                                    f"Downloading {destination.name}: "
+                                    f"{received_mb:.0f} MiB received"
+                                )
+
+                            _report(progress_callback, message)
 
             actual_size = temporary.stat().st_size if temporary.exists() else 0
             if actual_size == 0:
@@ -224,7 +248,8 @@ def _download(
             temporary.replace(destination)
             return True
 
-        except Exception:
+        except Exception as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
             logger.warning(
                 "Download attempt %s/%s failed: %s",
                 attempt,
@@ -232,32 +257,38 @@ def _download(
                 url,
                 exc_info=True,
             )
+
             # Keep the partial .download file so the next attempt can resume.
             if attempt < max_attempts:
                 delay = min(2 ** (attempt - 1), 30)
                 _report(
                     progress_callback,
-                    "Download interrupted; preserving received data and "
-                    f"retrying in {delay}s ({attempt + 1}/{max_attempts})...",
+                    f"Download attempt {attempt}/{max_attempts} failed "
+                    f"({last_error}). Retrying in {delay}s; received data "
+                    "will be preserved when possible...",
                 )
                 time.sleep(delay)
 
     _report(
         progress_callback,
-        f"Could not finish downloading {destination.name}. The partial file "
-        "has been kept so a later attempt can resume it.",
+        f"Could not finish downloading {destination.name} after "
+        f"{max_attempts} attempts. Last error: {last_error}. "
+        f"Partial download, if present: {temporary}",
     )
     return False
 
 
 def _works(path: Path, argument: str = "--version") -> bool:
     """Check that a downloaded executable actually runs."""
+    # FFmpeg tools take a single dash; the staged copy is named "ffmpeg.new".
+    if argument == "--version" and path.name.startswith(("ffmpeg", "ffprobe")):
+        argument = "-version"
     try:
         result = subprocess.run(
             [str(path), argument],
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=60,
             check=False,
         )
         return result.returncode == 0 and bool(
@@ -265,6 +296,30 @@ def _works(path: Path, argument: str = "--version") -> bool:
         )
     except (OSError, subprocess.SubprocessError):
         return False
+
+
+def _run_check(path: Path, argument: str) -> tuple[bool, str]:
+    """Run an executable and say why it failed, if it did."""
+    try:
+        result = subprocess.run(
+            [str(path), argument],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return False, "timed out after 60 s"
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
+    output = (result.stdout or result.stderr).strip()
+    if result.returncode != 0:
+        last = output.splitlines()[-1] if output else "no output"
+        return False, f"exit code {result.returncode}: {last}"
+    if not output:
+        return False, "no output"
+    return True, output.splitlines()[0]
 
 
 def _install_binary(
@@ -435,75 +490,122 @@ def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
         archive.unlink(missing_ok=True)
 
 
+
+def _extract_archive_binaries(
+    archive: Path,
+    binaries: dict[str, Path],
+) -> bool:
+    """Extract and validate all requested binaries before replacing copies."""
+    staged: dict[str, Path] = {}
+    backups: dict[Path, Path] = {}
+    installed: list[Path] = []
+
+    try:
+        for binary_name, destination in binaries.items():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            staged_path = destination.with_name(destination.name + ".new")
+            staged_path.unlink(missing_ok=True)
+            staged[binary_name] = staged_path
+
+        # Extract and validate every requested executable first.
+        for binary_name, staged_path in staged.items():
+            if zipfile.is_zipfile(archive):
+                with zipfile.ZipFile(archive) as zf:
+                    member = next(
+                        (
+                            item for item in zf.infolist()
+                            if not item.is_dir()
+                            and Path(item.filename).name == binary_name
+                        ),
+                        None,
+                    )
+                    if member is None:
+                        raise RuntimeError(f"Archive has no {binary_name}")
+                    with zf.open(member) as source_file:
+                        with staged_path.open("wb") as output:
+                            shutil.copyfileobj(source_file, output)
+            else:
+                with tarfile.open(archive, "r:*") as tf:
+                    member = next(
+                        (
+                            item for item in tf.getmembers()
+                            if item.isfile()
+                            and Path(item.name).name == binary_name
+                        ),
+                        None,
+                    )
+                    if member is None:
+                        raise RuntimeError(f"Archive has no {binary_name}")
+                    source_file = tf.extractfile(member)
+                    if source_file is None:
+                        raise RuntimeError(f"Could not read {binary_name}")
+                    with source_file, staged_path.open("wb") as output:
+                        shutil.copyfileobj(source_file, output)
+
+            _make_executable(staged_path)
+            ok, detail = _run_check(staged_path, "-version")
+            if not ok:
+                raise RuntimeError(
+                    f"Extracted {binary_name} failed its version check: "
+                    f"{detail}"
+                )
+
+        # Preserve the old copies until all replacements succeed.
+        for destination in binaries.values():
+            if destination.exists():
+                backup = destination.with_name(destination.name + ".backup")
+                backup.unlink(missing_ok=True)
+                destination.replace(backup)
+                backups[destination] = backup
+
+        for binary_name, destination in binaries.items():
+            staged[binary_name].replace(destination)
+            installed.append(destination)
+            _make_executable(destination)
+
+        return True
+
+    except Exception:
+        logger.warning(
+            "Archive extraction failed: %s", archive, exc_info=True
+        )
+
+        # Remove new files and restore every old copy still backed up.
+        for destination in installed:
+            destination.unlink(missing_ok=True)
+
+        for destination, backup in backups.items():
+            if backup.exists():
+                backup.replace(destination)
+
+        return False
+
+    finally:
+        for staged_path in staged.values():
+            staged_path.unlink(missing_ok=True)
+
+        # Backups are deleted only after a successful installation.
+        if len(installed) == len(binaries):
+            for backup in backups.values():
+                backup.unlink(missing_ok=True)
+
+
 def _extract_archive_binary(
     archive: Path,
     destination: Path,
     binary_name: str,
 ) -> bool:
-    """Extract the requested binary and replace it only after validation."""
-    extract_dir = BUNDLE_DIR / f"_{binary_name}_extract"
-    staged = destination.with_name(destination.name + ".new")
-
-    shutil.rmtree(extract_dir, ignore_errors=True)
-    extract_dir.mkdir(parents=True, exist_ok=True)
-    staged.unlink(missing_ok=True)
-
-    try:
-        if zipfile.is_zipfile(archive):
-            with zipfile.ZipFile(archive) as zf:
-                member = next(
-                    (
-                        item
-                        for item in zf.infolist()
-                        if Path(item.filename).name == binary_name
-                    ),
-                    None,
-                )
-                if member is None:
-                    raise RuntimeError(f"Archive has no {binary_name}")
-                with zf.open(member) as source, staged.open("wb") as output:
-                    shutil.copyfileobj(source, output)
-        else:
-            with tarfile.open(archive, "r:*") as tf:
-                member = next(
-                    (
-                        item
-                        for item in tf.getmembers()
-                        if item.isfile() and Path(item.name).name == binary_name
-                    ),
-                    None,
-                )
-                if member is None:
-                    raise RuntimeError(f"Archive has no {binary_name}")
-                source = tf.extractfile(member)
-                if source is None:
-                    raise RuntimeError(f"Could not read {binary_name}")
-                with source, staged.open("wb") as output:
-                    shutil.copyfileobj(source, output)
-
-        _make_executable(staged)
-        if not _works(staged):
-            raise RuntimeError(f"Extracted {binary_name} failed its version check")
-
-        staged.replace(destination)
-        _make_executable(destination)
-        return True
-
-    except Exception:
-        logger.warning("Archive extraction failed: %s", archive, exc_info=True)
-        staged.unlink(missing_ok=True)
-        return False
-
-    finally:
-        shutil.rmtree(extract_dir, ignore_errors=True)
+    """Extract and validate one binary without replacing it prematurely."""
+    return _extract_archive_binaries(archive, {binary_name: destination})
 
 
 def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
-    """Ensure FFmpeg exists, preferring the bundled copy and falling back to system FFmpeg."""
+    """Ensure bundled FFmpeg and ffprobe exist, with system fallback."""
     system_ffmpeg = shutil.which("ffmpeg")
+    system_ffprobe = shutil.which("ffprobe")
 
     def fallback() -> Path | None:
-        if system_ffmpeg:
+        if system_ffmpeg and system_ffprobe:
             _report(
                 progress_callback,
                 f"Using system FFmpeg: {system_ffmpeg}",
@@ -512,13 +614,7 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
         return None
 
     if SYSTEM == "Darwin":
-        if system_ffmpeg:
-            return Path(system_ffmpeg)
-        _report(
-            progress_callback,
-            "FFmpeg was not found. Install it with 'brew install ffmpeg'.",
-        )
-        return None
+        return fallback()
 
     asset = FFMPEG_ASSETS.get(SYSTEM)
     if not asset:
@@ -530,6 +626,13 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
 
     BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
     target = BUNDLE_DIR / _binary_name("ffmpeg")
+    ffprobe_target = BUNDLE_DIR / _binary_name("ffprobe")
+
+    if target.exists() and not _works(target):
+        target.unlink(missing_ok=True)
+    if ffprobe_target.exists() and not _works(ffprobe_target):
+        ffprobe_target.unlink(missing_ok=True)
+
     state = _load_state()
     due = _due_for_check(
         state,
@@ -537,16 +640,13 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
         interval_hours=FFMPEG_CHECK_INTERVAL_HOURS,
     )
 
-    if target.exists() and not _works(target):
-        target.unlink(missing_ok=True)
-
-    if target.exists() and not due:
+    if target.exists() and ffprobe_target.exists() and not due:
         return target
 
     _report(
         progress_callback,
-        "Downloading FFmpeg..."
-        if not target.exists()
+        "Downloading FFmpeg tools..."
+        if not (target.exists() and ffprobe_target.exists())
         else "Checking for an FFmpeg update...",
     )
 
@@ -554,32 +654,43 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
     url = f"{FFMPEG_RELEASE_BASE}/{asset}"
 
     if not _download(url, archive, progress_callback):
-        # Keep the .download partial file so the next run can resume it.
         _report(
             progress_callback,
-            "Could not download FFmpeg; keeping the existing copy if available.",
+            "Could not download FFmpeg; keeping working copies if available.",
         )
-        if target.exists() and _works(target):
+        if (
+            target.exists() and _works(target)
+            and ffprobe_target.exists() and _works(ffprobe_target)
+        ):
             return target
         return fallback()
 
     try:
-        if _extract_archive_binary(archive, target, _binary_name("ffmpeg")):
+        binaries = {
+            _binary_name("ffmpeg"): target,
+            _binary_name("ffprobe"): ffprobe_target,
+        }
+
+        if _extract_archive_binaries(archive, binaries):
             _stamp_check("ffmpeg_checked_at")
-            _report(progress_callback, "FFmpeg ready.")
+            _report(progress_callback, "FFmpeg and ffprobe ready.")
             return target
 
         _report(
             progress_callback,
-            "FFmpeg update failed; keeping the existing copy if available.",
+            "FFmpeg update failed; keeping working copies if available.",
         )
-        if target.exists() and _works(target):
+
+        if (
+            target.exists() and _works(target)
+            and ffprobe_target.exists() and _works(ffprobe_target)
+        ):
             return target
+
         return fallback()
 
     finally:
         archive.unlink(missing_ok=True)
-
 
 def ensure_all(progress_callback: ProgressCallback = None) -> dict:
     """Set up all tools independently; return every successfully available path."""

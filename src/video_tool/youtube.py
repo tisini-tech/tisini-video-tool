@@ -18,7 +18,11 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
+import sys
+import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -35,6 +39,7 @@ from .core import (
     trim_label,
 )
 from .errors import explain_download_error
+from .procutil import child_process_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +88,6 @@ class DownloadOptions:
     js_runtime_path: str | None = None
     # Runtime-managed standalone executable used by the GUI.
     yt_dlp_executable: str | None = None
-    js_runtime_path: str | None = None
 
     # Range download. Leave both as None to fetch the whole video.
     section_start: float | None = None
@@ -359,16 +363,11 @@ def build_ydl_options(
                 "path": options.js_runtime_path,
             }
         }
-    ydl_options["remote_components"] = ["ejs:npm"]
 
-    # Use the app-managed Deno executable when provided.
-    if options.js_runtime_path:
-        ydl_options["js_runtimes"] = {
-            "deno": {
-                "path": options.js_runtime_path,
-            }
-        }
-    ydl_options["remote_components"] = ["ejs:npm"]
+    # Same default as the standalone path below: fetch the EJS solver from
+    # npm unless the caller chose its own list.
+    if options.remote_components is None:
+        ydl_options["remote_components"] = ["ejs:npm"]
 
     _apply_auth_options(
         ydl_options,
@@ -526,6 +525,303 @@ def _final_path(
     return ydl.prepare_filename(info)
 
 
+class ExecutableLaunchError(MissingToolError):
+    """The standalone yt-dlp program could not run at all.
+
+    This points at the program or the computer (for example antivirus
+    blocking it), not at the video. ``download_url`` answers it by using the
+    yt-dlp that is built into the app instead.
+    """
+
+
+# Lines the standalone yt-dlp prints for us to read. The prefixes keep them
+# apart from the file path it prints when the download ends.
+_PROGRESS_PREFIX = "VTPROG|"
+_STREAMS_PREFIX = "VTSTREAMS|"
+_PROGRESS_TEMPLATE = (
+    "download:"
+    + _PROGRESS_PREFIX
+    + "%(progress.downloaded_bytes)s|%(progress.total_bytes)s|"
+    "%(progress.total_bytes_estimate)s|%(progress.fragment_index)s|"
+    "%(progress.fragment_count)s"
+)
+# Prints the format ids about to download, such as "137, 140" for a video
+# stream plus an audio stream. Empty when there is only one stream.
+_STREAMS_PRINT = (
+    "before_dl:" + _STREAMS_PREFIX + "%(requested_formats.:.format_id|)l"
+)
+
+# Text the PyInstaller start-up code prints when yt-dlp.exe cannot unpack
+# itself, for example "[PYI-21604:ERROR] Failed to extract python310.dll".
+_LAUNCH_FAILURE_MARKERS = (
+    "[PYI-",
+    "Failed to extract",
+    "Failed to load Python",
+)
+
+_ANSI_CODES = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+_LAST_LOG_PATH = Path.home() / ".video-tool-gui" / "last_download.log"
+
+
+def _number(value: object) -> float | None:
+    """Return a non-negative number, or None for "NA", blanks and junk."""
+
+    try:
+        number = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+    # NaN is the only value that is not equal to itself.
+    if number != number or number < 0:
+        return None
+
+    return number
+
+
+class ProgressTracker:
+    """Turn yt-dlp progress reports into one 0 to 1 value per download.
+
+    A video and its audio usually download as two streams, one after the
+    other, and each report only covers the stream in progress. The tracker
+    spreads the bar across all streams, so it moves forward once.
+
+    It takes the dictionaries yt-dlp gives a progress hook. The standalone
+    path in this module sends dictionaries of the same shape.
+    """
+
+    def __init__(self) -> None:
+        self._stage = 0
+        self._last_done = 0.0
+        self._shown = 0.0
+
+    def fraction(self, report: dict) -> float | None:
+        """Return the overall progress, or None if the report has none."""
+
+        if report.get("status") != "downloading":
+            return None
+
+        done = _number(report.get("downloaded_bytes"))
+
+        if done is None:
+            return None
+
+        # The byte count falls back to zero when the next stream starts.
+        if done < self._last_done:
+            self._stage += 1
+
+        self._last_done = done
+
+        total = _number(report.get("total_bytes")) or _number(
+            report.get("total_bytes_estimate")
+        )
+
+        if total:
+            part = done / total
+        else:
+            index = _number(report.get("fragment_index"))
+            count = _number(report.get("fragment_count"))
+
+            if index is None or not count:
+                return None
+
+            part = index / count
+
+        part = min(max(part, 0.0), 1.0)
+
+        info = report.get("info_dict") or {}
+        streams = max(1, len(info.get("requested_formats") or []))
+        # Seeing a later stage proves there are at least that many streams.
+        streams = max(streams, self._stage + 1)
+        stage = min(self._stage, streams - 1)
+
+        overall = (stage + part) / streams
+
+        # Never move backwards, whatever the reports say.
+        self._shown = max(self._shown, overall)
+
+        return self._shown
+
+
+def _child_output_encoding() -> str:
+    """Return the text encoding yt-dlp uses when its output goes to a pipe.
+
+    On Windows that is the system code page (cp1252 on most English
+    systems), not UTF-8. Reading it as UTF-8 turns an apostrophe into a
+    broken character and garbles file names that have accents.
+    """
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            return f"cp{ctypes.windll.kernel32.GetACP()}"  # type: ignore[attr-defined]
+        except Exception:
+            return "utf-8"
+
+    return "utf-8"
+
+
+def _clean_ytdlp_output(text: str, returncode: int) -> str:
+    """Boil yt-dlp's output down to the lines that explain the failure.
+
+    yt-dlp prints many warnings before the real error. Showing all of them
+    buries the cause, so keep the ERROR lines, or the last few lines when
+    there are none.
+    """
+
+    text = _ANSI_CODES.sub("", text or "")
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    errors = [line for line in lines if line.startswith("ERROR:")]
+
+    if errors:
+        chosen = errors
+    else:
+        chosen = [
+            line for line in lines if not line.startswith("WARNING:")
+        ][-5:]
+
+    if not chosen:
+        return (
+            f"yt-dlp stopped with exit code {returncode} and gave no "
+            "details. An antivirus program may be blocking it."
+        )
+
+    return "\n".join(chosen)[-2000:]
+
+
+def _is_launch_failure(
+    stderr_text: str,
+    stdout_lines: list[str],
+    returncode: int,
+) -> bool:
+    """Return True when yt-dlp itself failed to start or was cut off."""
+
+    if returncode == 0:
+        return False
+
+    if any(marker in stderr_text for marker in _LAUNCH_FAILURE_MARKERS):
+        return True
+
+    # Failed with nothing at all to say: killed, not refused.
+    return not stderr_text.strip() and not stdout_lines
+
+
+def _write_last_log(
+    args: list[str],
+    returncode: int,
+    stdout_lines: list[str],
+    stderr_text: str,
+) -> None:
+    """Keep yt-dlp's full output of the last failure for support."""
+
+    try:
+        _LAST_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _LAST_LOG_PATH.write_text(
+            "command: " + " ".join(args) + "\n"
+            f"exit code: {returncode}\n\n"
+            "--- stdout ---\n" + "\n".join(stdout_lines) + "\n\n"
+            "--- stderr ---\n" + stderr_text,
+            encoding="utf-8",
+        )
+    except OSError:
+        logger.warning("Could not write %s", _LAST_LOG_PATH, exc_info=True)
+
+
+def _forward_progress(
+    line: str,
+    streams: int,
+    hook: ProgressHook | None,
+) -> None:
+    """Pass one progress line to the caller's hook, shaped like yt-dlp's."""
+
+    if hook is None:
+        return
+
+    parts = line[len(_PROGRESS_PREFIX):].split("|")
+    parts += ["NA"] * (5 - len(parts))
+    done, total, estimate, index, count = parts[:5]
+
+    try:
+        hook(
+            {
+                "status": "downloading",
+                "downloaded_bytes": _number(done),
+                "total_bytes": _number(total),
+                "total_bytes_estimate": _number(estimate),
+                "fragment_index": _number(index),
+                "fragment_count": _number(count),
+                "info_dict": {"requested_formats": [{}] * streams},
+            }
+        )
+    except Exception:
+        # A faulty hook must never stop the download.
+        logger.debug("Progress hook failed", exc_info=True)
+
+
+def _run_ytdlp(
+    args: list[str],
+    options: DownloadOptions,
+) -> tuple[int, list[str], str]:
+    """Run the standalone yt-dlp once.
+
+    Return the exit code, the lines it printed to standard output (progress
+    lines removed), and everything it printed to standard error. Progress
+    reaches ``options.progress_hook`` while the program runs.
+    """
+
+    try:
+        process = subprocess.Popen(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding=_child_output_encoding(),
+            errors="replace",
+            **child_process_kwargs(),
+        )
+    except OSError as exc:
+        raise ExecutableLaunchError(
+            f"Could not start yt-dlp at {args[0]}: {exc}"
+        ) from exc
+
+    # Read standard error on its own thread. If nobody empties it, a long
+    # error message can fill the pipe and freeze yt-dlp.
+    stderr_parts: list[str] = []
+
+    def drain_stderr() -> None:
+        if process.stderr is not None:
+            for text_line in process.stderr:
+                stderr_parts.append(text_line)
+
+    reader = threading.Thread(target=drain_stderr, daemon=True)
+    reader.start()
+
+    stdout_lines: list[str] = []
+    streams = 1
+
+    if process.stdout is not None:
+        for raw_line in process.stdout:
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith(_STREAMS_PREFIX):
+                ids = line[len(_STREAMS_PREFIX):].split(",")
+                streams = max(1, len([item for item in ids if item.strip()]))
+            elif line.startswith(_PROGRESS_PREFIX):
+                _forward_progress(line, streams, options.progress_hook)
+            else:
+                stdout_lines.append(line)
+
+    returncode = process.wait()
+    reader.join(timeout=5)
+
+    return returncode, stdout_lines, "".join(stderr_parts)
+
+
 def _download_url_with_executable(
     url: str,
     options: DownloadOptions,
@@ -534,6 +830,9 @@ def _download_url_with_executable(
 
     This lets the GUI use its runtime-updated yt-dlp executable rather than
     only updating a standalone binary while downloads use the bundled module.
+
+    Progress goes to ``options.progress_hook`` as it happens. If the program
+    cannot run at all, ``ExecutableLaunchError`` is raised after a few tries.
     """
     executable = Path(options.yt_dlp_executable or "").expanduser()
     if not executable.is_file():
@@ -552,7 +851,11 @@ def _download_url_with_executable(
         "--fragment-retries", "10",
         "--output", output_template,
         "--print", "after_move:filepath",
-        "--no-progress",
+        "--print", _STREAMS_PRINT,
+        # One progress line per update, in a form this module can read.
+        "--newline",
+        "--progress",
+        "--progress-template", _PROGRESS_TEMPLATE,
     ]
 
     cookie_file = _cookie_file(options)
@@ -596,32 +899,46 @@ def _download_url_with_executable(
         ])
 
     args.append(url)
-    try:
-        result = subprocess.run(
-            args,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-    except OSError as exc:
-        raise MissingToolError(
-            f"Could not start yt-dlp at {executable}: {exc}"
-        ) from exc
 
-    if result.returncode != 0:
-        details = (
-            result.stderr or result.stdout or "No error details were returned."
-        ).strip()
-        if len(details) > 6000:
-            details = details[-6000:]
+    # yt-dlp.exe unpacks itself on every start. That sometimes fails for a
+    # moment (antivirus scanning, a busy disk), so try again before giving up.
+    attempts = 3
+    for attempt in range(1, attempts + 1):
+        returncode, stdout_lines, stderr_text = _run_ytdlp(args, options)
+
+        if returncode == 0:
+            break
+
+        launch_failure = _is_launch_failure(
+            stderr_text, stdout_lines, returncode
+        )
+
+        if launch_failure and attempt < attempts:
+            logger.warning(
+                "yt-dlp did not start (attempt %s of %s); trying again",
+                attempt,
+                attempts,
+            )
+            time.sleep(2 * attempt)
+            continue
+
+        _write_last_log(args, returncode, stdout_lines, stderr_text)
+
+        details = _clean_ytdlp_output(
+            stderr_text or "\n".join(stdout_lines), returncode
+        )
+
+        if launch_failure:
+            raise ExecutableLaunchError(
+                f"yt-dlp could not start.\n{details}"
+            )
+
         raise VideoToolError(
             f"yt-dlp could not download this video.\n{details}"
         )
 
     # --print after_move:filepath reports the final post-processed file path.
-    for line in reversed(result.stdout.splitlines()):
+    for line in reversed(stdout_lines):
         candidate_text = line.strip()
         if not candidate_text:
             continue
@@ -659,7 +976,16 @@ def download_url(
     # Use the runtime-updated executable for GUI full downloads. Range-download
     # and other callers retain the established Python yt-dlp API pipeline.
     if download and options.yt_dlp_executable and not has_section(options):
-        return _download_url_with_executable(url, options)
+        try:
+            return _download_url_with_executable(url, options)
+        except ExecutableLaunchError as exc:
+            # The program would not even start. Try the yt-dlp built into
+            # this app rather than failing for a reason the user cannot fix.
+            logger.warning(
+                "The standalone yt-dlp would not run (%s). "
+                "Using the built-in yt-dlp instead.",
+                exc,
+            )
 
     ydl_options = build_ydl_options(options)
 

@@ -16,6 +16,7 @@ import queue
 import random
 import shutil
 import threading
+import time
 from dataclasses import replace
 from pathlib import Path
 from tkinter import filedialog
@@ -26,10 +27,16 @@ from ..clip_source import fetch_clip
 from ..core import load_download_count, save_download_count
 from ..errors import explain
 from ..notify import Notifier
-from ..youtube import DownloadOptions
+from ..procutil import install_no_window_default
+from ..youtube import DownloadOptions, ProgressTracker
 from .bundled_deps import ensure_all
 from .toast import ToastHost
 from ..versions.common_cli import clean_url
+
+# On Windows this app has no console of its own, so every helper program it
+# starts (yt-dlp, FFmpeg, Deno) would open a command window. Stop that for
+# all of them, including ones started by libraries.
+install_no_window_default()
 
 # ---------------------------------------------------------------------------
 # Appearance
@@ -635,6 +642,11 @@ class VideoToolGUI(ctk.CTk):
         self._set_busy(True)
         self.status_var.set("Checking the tools Video Tool needs...")
 
+        # The size of this job is not known, so show a bar that moves
+        # without a fixed end rather than one that sits still.
+        self.progress.configure(mode="indeterminate")
+        self.progress.start()
+
         threading.Thread(
             target=self._dependency_worker,
             daemon=True,
@@ -655,9 +667,13 @@ class VideoToolGUI(ctk.CTk):
         self._ui_queue.put(("deps_done", result))
 
     def _finish_dependency_check(self, result: object) -> None:
-        """Use what the setup found, and say so if FFmpeg is missing."""
+        """Use what the setup found, and say so if a tool is missing."""
 
         self._set_busy(False)
+
+        self.progress.stop()
+        self.progress.configure(mode="determinate")
+        self.progress.set(0)
 
         if isinstance(result, dict) and result.get("ffmpeg"):
             self._ffmpeg_path = str(result["ffmpeg"])
@@ -679,8 +695,18 @@ class VideoToolGUI(ctk.CTk):
                 "Downloads may still work. If one fails, restart "
                 "Video Tool.",
             )
-        elif self._ffmpeg_path:
+        elif self._ffmpeg_path and self._ytdlp_path and self._deno_path:
             self.status_var.set("Ready to download.")
+        elif self._ffmpeg_path:
+            # Downloads can still run, but say what is missing instead of
+            # claiming everything is ready.
+            self.status_var.set("Ready to download (some tools are missing).")
+            self.toasts.show(
+                "warning",
+                "Some tools could not be set up\n"
+                "Most videos will still download. If one fails, "
+                "restart Video Tool with an internet connection.",
+            )
         else:
             self.status_var.set(
                 "FFmpeg was not found. Some formats may not work."
@@ -921,7 +947,14 @@ class VideoToolGUI(ctk.CTk):
                     output_dir,
                     None,
                     None,
-                    options,
+                    # A copy with this link's own progress hook, so the bar
+                    # follows the download as it runs.
+                    replace(
+                        options,
+                        progress_hook=self._make_progress_hook(
+                            index, len(urls)
+                        ),
+                    ),
                     full_download=True,
                     keep_original=True,
                 )
@@ -992,6 +1025,52 @@ class VideoToolGUI(ctk.CTk):
                 ),
             )
         )
+
+    def _make_progress_hook(self, index: int, total: int):
+        """Return a hook that moves the bar while link number ``index`` loads.
+
+        yt-dlp calls the hook from the download thread, so it only puts
+        values on the queue; the main thread draws them. The bar covers all
+        links: link 2 of 4 fills the span from 25% to 50%.
+        """
+
+        tracker = ProgressTracker()
+        last = {"time": 0.0, "fraction": -1.0}
+
+        def hook(report: dict) -> None:
+            try:
+                fraction = tracker.fraction(report)
+            except Exception:
+                return
+
+            if fraction is None:
+                return
+
+            # Skip near-identical updates; yt-dlp can report many per second.
+            now = time.monotonic()
+            if (
+                now - last["time"] < 0.2
+                and abs(fraction - last["fraction"]) < 0.01
+            ):
+                return
+
+            last["time"] = now
+            last["fraction"] = fraction
+
+            # Leave the last stretch for the finished download to fill.
+            overall = ((index - 1) + min(fraction, 0.99)) / total
+            self._ui_queue.put(("progress", overall))
+
+            if fraction >= 0.99:
+                text = "Finishing up..."
+            elif total == 1:
+                text = f"Downloading {fraction:.0%}"
+            else:
+                text = f"Downloading {index}/{total}: {fraction:.0%}"
+
+            self._ui_queue.put(("status", text))
+
+        return hook
 
     def _notify_from_any_thread(self, level: str, message: str) -> None:
         """Receive a notification from any thread.

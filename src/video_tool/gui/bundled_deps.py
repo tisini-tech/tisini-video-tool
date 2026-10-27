@@ -18,6 +18,8 @@ from pathlib import Path
 
 import requests
 
+from ..procutil import child_process_kwargs
+
 logger = logging.getLogger(__name__)
 
 ProgressCallback = Callable[[str], None] | None
@@ -25,7 +27,11 @@ ProgressCallback = Callable[[str], None] | None
 BUNDLE_DIR = Path.home() / ".video-tool-gui" / "bin"
 STATE_PATH = Path.home() / ".video-tool-gui" / "check_state.json"
 VERSION_CHECK_INTERVAL_HOURS = 24
-FFMPEG_CHECK_INTERVAL_HOURS = 168  # Large rolling archive: check weekly.
+# The FFmpeg archive is about 150 MB and the build is a rolling one, so a
+# fresh copy rarely matters. Check monthly.
+FFMPEG_CHECK_INTERVAL_HOURS = 24 * 30
+
+DENO_LATEST_URL = "https://github.com/denoland/deno/releases/latest"
 
 YTDLP_RELEASE_BASE = (
     "https://github.com/yt-dlp/yt-dlp/releases/latest/download"
@@ -97,11 +103,27 @@ def _load_state() -> dict:
         return {}
 
 
+def _replace_with_retry(source: Path, destination: Path) -> None:
+    """Replace a file, trying again if Windows says it is busy.
+
+    Antivirus programs often hold a new file for a moment, which makes the
+    first attempt fail with PermissionError.
+    """
+    for attempt in range(5):
+        try:
+            source.replace(destination)
+            return
+        except PermissionError:
+            if attempt == 4:
+                raise
+            time.sleep(0.3 * (attempt + 1))
+
+
 def _save_state(state: dict) -> None:
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     temporary = STATE_PATH.with_suffix(".tmp")
     temporary.write_text(json.dumps(state, indent=2), encoding="utf-8")
-    temporary.replace(STATE_PATH)
+    _replace_with_retry(temporary, STATE_PATH)
 
 
 def _due_for_check(
@@ -123,6 +145,46 @@ def _due_for_check(
 def _stamp_check(key: str) -> None:
     state = _load_state()
     state[key] = datetime.now().isoformat()
+    try:
+        _save_state(state)
+    except OSError:
+        logger.warning("Could not save dependency check state", exc_info=True)
+
+
+def _fingerprint(path: Path) -> dict | None:
+    """Describe a file by its size and change time."""
+    try:
+        info = path.stat()
+    except OSError:
+        return None
+    return {"size": info.st_size, "mtime_ns": info.st_mtime_ns}
+
+
+def _is_verified(path: Path) -> bool:
+    """Return True if this exact file already passed its check here.
+
+    Running yt-dlp.exe takes seconds, because it unpacks itself first, and
+    it can fail while antivirus scans it. A file that has not changed since
+    it last passed does not need that test again.
+    """
+    fingerprint = _fingerprint(path)
+    if fingerprint is None:
+        return False
+    verified = _load_state().get("verified")
+    return isinstance(verified, dict) and verified.get(path.name) == fingerprint
+
+
+def _mark_verified(path: Path) -> None:
+    """Remember that this file passed its check."""
+    fingerprint = _fingerprint(path)
+    if fingerprint is None:
+        return
+    state = _load_state()
+    verified = state.get("verified")
+    if not isinstance(verified, dict):
+        verified = {}
+    verified[path.name] = fingerprint
+    state["verified"] = verified
     try:
         _save_state(state)
     except OSError:
@@ -278,11 +340,21 @@ def _download(
     return False
 
 
+def _version_arg(name: str, argument: str = "--version") -> str:
+    """Return the flag that makes the tool called ``name`` print its version.
+
+    FFmpeg tools take a single dash (-version). Every other tool we manage
+    (yt-dlp, Deno) takes two (--version) and rejects a single dash. The
+    staged copy is named like "ffmpeg.exe.new", so match on the start.
+    """
+    if argument == "--version" and name.startswith(("ffmpeg", "ffprobe")):
+        return "-version"
+    return argument
+
+
 def _works(path: Path, argument: str = "--version") -> bool:
     """Check that a downloaded executable actually runs."""
-    # FFmpeg tools take a single dash; the staged copy is named "ffmpeg.new".
-    if argument == "--version" and path.name.startswith(("ffmpeg", "ffprobe")):
-        argument = "-version"
+    argument = _version_arg(path.name, argument)
     try:
         result = subprocess.run(
             [str(path), argument],
@@ -290,12 +362,37 @@ def _works(path: Path, argument: str = "--version") -> bool:
             text=True,
             timeout=60,
             check=False,
+            **child_process_kwargs(),
         )
         return result.returncode == 0 and bool(
             (result.stdout or result.stderr).strip()
         )
     except (OSError, subprocess.SubprocessError):
         return False
+
+
+def _usable(path: Path, attempts: int = 2) -> bool:
+    """Return True if ``path`` is a program that works.
+
+    A file that already passed and has not changed is trusted without
+    running it. Otherwise it is run, and a failure is tried again before
+    the file is called broken: one failure can come from antivirus
+    scanning, not from a bad file.
+    """
+    if not path.exists():
+        return False
+
+    if _is_verified(path):
+        return True
+
+    for attempt in range(attempts):
+        if _works(path):
+            _mark_verified(path)
+            return True
+        if attempt + 1 < attempts:
+            time.sleep(2)
+
+    return False
 
 
 def _run_check(path: Path, argument: str) -> tuple[bool, str]:
@@ -307,6 +404,7 @@ def _run_check(path: Path, argument: str) -> tuple[bool, str]:
             text=True,
             timeout=60,
             check=False,
+            **child_process_kwargs(),
         )
     except subprocess.TimeoutExpired:
         return False, "timed out after 60 s"
@@ -339,8 +437,9 @@ def _install_binary(
         if not _works(staged, check_argument):
             raise RuntimeError("Downloaded executable failed its version check")
 
-        staged.replace(target)
+        _replace_with_retry(staged, target)
         _make_executable(target)
+        _mark_verified(target)
         return True
 
     except Exception:
@@ -359,17 +458,17 @@ def _update_binary(
     target = BUNDLE_DIR / _binary_name(tool)
     BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
 
-    if not target.exists() or not _works(target):
+    if not _usable(target):
         _report(progress, f"Downloading {tool}...")
         if _install_binary(asset_url, target):
             _stamp_check(check_key)
             _report(progress, f"{tool} ready.")
             return target
 
-        # A broken file should not be treated as a usable dependency.
-        if target.exists() and not _works(target):
-            target.unlink(missing_ok=True)
-        return target if target.exists() else None
+        # The copy on disk did not pass. Do not use it, but do not delete it
+        # either: it may only fail to start right now, and the next launch
+        # will try again. Callers fall back to the built-in yt-dlp.
+        return None
 
     state = _load_state()
     if not _due_for_check(state, check_key):
@@ -390,8 +489,9 @@ def _update_binary(
                 [str(target), "--version"],
                 capture_output=True,
                 text=True,
-                timeout=15,
+                timeout=60,
                 check=False,
+                **child_process_kwargs(),
             )
             installed_version = installed_result.stdout.strip().lstrip("v")
 
@@ -451,18 +551,24 @@ def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
     target = BUNDLE_DIR / _binary_name("deno")
     state = _load_state()
 
-    if target.exists() and not _works(target):
-        target.unlink(missing_ok=True)
+    usable = _usable(target)
 
-    if target.exists() and not _due_for_check(state, "deno_checked_at"):
+    if usable and not _due_for_check(state, "deno_checked_at"):
         return target
 
-    _report(
-        progress_callback,
-        "Downloading Deno..."
-        if not target.exists()
-        else "Checking for a Deno update...",
-    )
+    if usable:
+        # Download the 40 MB archive only when a newer Deno exists.
+        latest = _latest_deno_version()
+        installed = _installed_deno_version(target)
+        if latest is None or installed == latest:
+            _stamp_check("deno_checked_at")
+            return target
+        _report(
+            progress_callback,
+            f"Updating Deno ({installed or 'unknown'} → {latest})...",
+        )
+    else:
+        _report(progress_callback, "Downloading Deno...")
 
     archive = BUNDLE_DIR / asset
     url = f"{DENO_RELEASE_BASE}/{asset}"
@@ -472,7 +578,7 @@ def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
             progress_callback,
             "Could not download Deno; keeping the existing copy if available.",
         )
-        return target if target.exists() and _works(target) else None
+        return target if usable else None
 
     try:
         if _extract_archive_binary(archive, target, _binary_name("deno")):
@@ -484,10 +590,43 @@ def ensure_deno(progress_callback: ProgressCallback = None) -> Path | None:
             progress_callback,
             "Deno update failed; keeping the existing copy if available.",
         )
-        return target if target.exists() and _works(target) else None
+        return target if usable else None
 
     finally:
         archive.unlink(missing_ok=True)
+
+
+def _latest_deno_version() -> str | None:
+    """Return the newest Deno version, or None if it cannot be found.
+
+    GitHub redirects /releases/latest to /releases/tag/vX.Y.Z. Reading that
+    redirect avoids the API, which limits how often one address may ask.
+    """
+    try:
+        response = requests.head(
+            DENO_LATEST_URL,
+            allow_redirects=False,
+            timeout=15,
+            headers={"User-Agent": "Video-Tool-GUI"},
+        )
+    except requests.RequestException:
+        logger.warning("Could not look up the latest Deno version", exc_info=True)
+        return None
+
+    match = re.search(
+        r"/tag/v?(\d+\.\d+\.\d+\S*)$",
+        response.headers.get("Location", ""),
+    )
+    return match.group(1) if match else None
+
+
+def _installed_deno_version(path: Path) -> str | None:
+    """Return the version of the Deno at ``path``, or None."""
+    ok, detail = _run_check(path, "--version")
+    if not ok:
+        return None
+    match = re.match(r"deno\s+(\S+)", detail)
+    return match.group(1) if match else None
 
 
 
@@ -543,7 +682,8 @@ def _extract_archive_binaries(
                         shutil.copyfileobj(source_file, output)
 
             _make_executable(staged_path)
-            ok, detail = _run_check(staged_path, "-version")
+            # FFmpeg tools take -version; Deno takes --version.
+            ok, detail = _run_check(staged_path, _version_arg(binary_name))
             if not ok:
                 raise RuntimeError(
                     f"Extracted {binary_name} failed its version check: "
@@ -555,13 +695,17 @@ def _extract_archive_binaries(
             if destination.exists():
                 backup = destination.with_name(destination.name + ".backup")
                 backup.unlink(missing_ok=True)
-                destination.replace(backup)
+                _replace_with_retry(destination, backup)
                 backups[destination] = backup
 
         for binary_name, destination in binaries.items():
-            staged[binary_name].replace(destination)
+            _replace_with_retry(staged[binary_name], destination)
             installed.append(destination)
             _make_executable(destination)
+
+        # Each file just passed its check, so remember that.
+        for destination in installed:
+            _mark_verified(destination)
 
         return True
 
@@ -628,10 +772,9 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
     target = BUNDLE_DIR / _binary_name("ffmpeg")
     ffprobe_target = BUNDLE_DIR / _binary_name("ffprobe")
 
-    if target.exists() and not _works(target):
-        target.unlink(missing_ok=True)
-    if ffprobe_target.exists() and not _works(ffprobe_target):
-        ffprobe_target.unlink(missing_ok=True)
+    ffmpeg_ok = _usable(target)
+    ffprobe_ok = _usable(ffprobe_target)
+    both_ok = ffmpeg_ok and ffprobe_ok
 
     state = _load_state()
     due = _due_for_check(
@@ -640,14 +783,14 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
         interval_hours=FFMPEG_CHECK_INTERVAL_HOURS,
     )
 
-    if target.exists() and ffprobe_target.exists() and not due:
+    if both_ok and not due:
         return target
 
     _report(
         progress_callback,
-        "Downloading FFmpeg tools..."
-        if not (target.exists() and ffprobe_target.exists())
-        else "Checking for an FFmpeg update...",
+        "Checking for an FFmpeg update..."
+        if both_ok
+        else "Downloading FFmpeg tools...",
     )
 
     archive = BUNDLE_DIR / asset
@@ -658,10 +801,7 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
             progress_callback,
             "Could not download FFmpeg; keeping working copies if available.",
         )
-        if (
-            target.exists() and _works(target)
-            and ffprobe_target.exists() and _works(ffprobe_target)
-        ):
+        if both_ok:
             return target
         return fallback()
 
@@ -681,10 +821,7 @@ def ensure_ffmpeg(progress_callback: ProgressCallback = None) -> Path | None:
             "FFmpeg update failed; keeping working copies if available.",
         )
 
-        if (
-            target.exists() and _works(target)
-            and ffprobe_target.exists() and _works(ffprobe_target)
-        ):
+        if both_ok:
             return target
 
         return fallback()

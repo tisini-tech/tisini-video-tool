@@ -44,6 +44,22 @@ class Limits:
     key_fails: int = 5          # wrong keys from one address ...
     key_fail_window: int = 60   # ... within this many seconds ...
     key_block: int = 900        # ... block that address for this long
+    merge_timeout: int = 1800   # longest a merge job may run
+    max_upload_mb: int = 5120   # biggest single uploaded file (5 GB)
+    upload_quota_mb: int = 12288  # all of one user's uploads together
+    max_uploads: int = 6        # files one user may hold at once
+
+    @property
+    def max_upload(self) -> int:
+        """The biggest single upload, in bytes."""
+
+        return self.max_upload_mb * 1024**2
+
+    @property
+    def upload_quota(self) -> int:
+        """The most bytes one user may hold in uploads."""
+
+        return self.upload_quota_mb * 1024**2
 
 
 @dataclass(frozen=True)
@@ -81,6 +97,10 @@ class Settings:
                 calls_per_min=_number("VT_API_CALLS_PER_MIN", 60),
                 key_fails=_number("VT_API_KEY_FAILS", 5),
                 key_block=_number("VT_API_KEY_BLOCK", 900),
+                merge_timeout=_number("VT_API_MERGE_TIMEOUT", 1800),
+                max_upload_mb=_number("VT_API_MAX_UPLOAD_MB", 5120),
+                upload_quota_mb=_number("VT_API_UPLOAD_QUOTA_MB", 12288),
+                max_uploads=_number("VT_API_MAX_UPLOADS", 6),
             ),
             api_key_next=os.environ.get("VT_API_KEY_NEXT", "").strip(),
             trust_proxy=_flag("VT_API_TRUST_PROXY"),

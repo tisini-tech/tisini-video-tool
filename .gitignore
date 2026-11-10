@@ -43,3 +43,12 @@ downloads/
 !tests/fixtures/media/*.mp3
 !tests/fixtures/media/*.mkv
 !tests/fixtures/media/*.webm
+# Big local-only test footage (not committed)
+tests/fixtures/media/1st.mp4
+tests/fixtures/media/2nd.mp4
+
+# Local clean-up and builds
+_to_delete/
+*.exe
+*.part
+.video-tool-merge/

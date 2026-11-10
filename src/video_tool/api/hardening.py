@@ -1,8 +1,9 @@
 """Checks that apply to every request, before any route runs.
 
 - A request that says its body is over ``MAX_BODY`` bytes is refused.
-  The reverse proxy must also cap bodies, because a sender can leave out
-  the size.
+  The upload route has its own, larger limit. The reverse proxy must also
+  cap bodies, because a sender can leave out the size. The upload route
+  counts the bytes as they arrive for the same reason.
 - Every reply gets headers that stop caching and content guessing, and
   keep download links out of the Referer header.
 
@@ -25,9 +26,17 @@ HEADERS = {
 
 
 class Hardening:
-    def __init__(self, app, max_body: int = MAX_BODY) -> None:
+    def __init__(
+        self,
+        app,
+        max_body: int = MAX_BODY,
+        bigger: dict[str, int] | None = None,
+    ) -> None:
         self.app = app
         self.max_body = max_body
+        # Routes that take a file may have a bigger body. Each is listed
+        # by its exact path. Every other route keeps ``max_body``.
+        self.bigger = dict(bigger or {})
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] != "http":
@@ -35,11 +44,13 @@ class Hardening:
 
             return
 
+        allowed = self.bigger.get(scope.get("path", ""), self.max_body)
+
         for name, value in scope["headers"]:
             if (
                 name == b"content-length"
                 and value.isdigit()
-                and int(value) > self.max_body
+                and int(value) > allowed
             ):
                 reply = JSONResponse(
                     {

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import errno
+import logging
 import math
 import time
 from collections.abc import Callable
@@ -12,15 +15,43 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from ..core import find_ffmpeg
 from .hardening import Hardening
-from .jobs import Job, JobStore, TooSoonError, UserBusyError
+from .jobs import (
+    Job,
+    JobStore,
+    TooSoonError,
+    UnknownUploadError,
+    UploadLimitError,
+    UserBusyError,
+)
 from .ratelimit import CallLimiter, KeyGuard
 from .runners import make_runners
-from .schemas import BasicJob
+from .schemas import JobRequest
 from .security import Settings, key_ok, valid_user_id
+from .uploads import UploadRejected, check_video, save_stream
+
+logger = logging.getLogger(__name__)
 
 NOT_FOUND = {
     "title": "Job not found",
     "message": "There is no such job, or it has expired.",
+}
+
+UPLOAD_NOT_FOUND = {
+    "title": "Upload not found",
+    "message": "There is no such upload, or it has expired.",
+}
+
+# Tells the /docs page that the body of an upload is the file itself, so
+# it shows a file picker. The route reads the body as a stream.
+UPLOAD_BODY = {
+    "requestBody": {
+        "required": True,
+        "content": {
+            "application/octet-stream": {
+                "schema": {"type": "string", "format": "binary"}
+            }
+        },
+    }
 }
 
 
@@ -93,7 +124,8 @@ def create_app(
         openapi_url="/openapi.json" if docs else None,
     )
     app.state.store = store
-    app.add_middleware(Hardening)
+    # Every route takes a small body, except the one that takes a file.
+    app.add_middleware(Hardening, bigger={"/v1/uploads": limits.max_upload})
 
     def who(
         request: Request,
@@ -160,10 +192,88 @@ def create_app(
 
         return {"status": "ok"}
 
+    @app.post("/v1/uploads", status_code=201, openapi_extra=UPLOAD_BODY)
+    async def upload_file(request: Request, user: str = Depends(who)) -> dict:
+        """Hand over one video file. The body is the file, as it is.
+
+        The reply holds the upload ``id``. Use it in a merge job as
+        ``{"upload": "<id>"}``. An upload you do not use is deleted after
+        an hour.
+        """
+
+        try:
+            upload = store.start_upload(user)
+        except UploadLimitError as exc:
+            raise HTTPException(
+                429, {"title": exc.title, "message": exc.message}
+            )
+
+        done = False
+
+        try:
+            size = await save_stream(
+                request.stream(), upload.file, upload.limit
+            )
+            await asyncio.to_thread(check_video, upload.file)
+            store.finish_upload(upload, size)
+            done = True
+        except UploadRejected as exc:
+            raise HTTPException(
+                exc.status, {"title": exc.title, "message": exc.message}
+            )
+        except OSError as exc:
+            logger.error("Upload could not be saved", exc_info=exc)
+            full = exc.errno == errno.ENOSPC
+
+            raise HTTPException(
+                507 if full else 500,
+                {
+                    "title": "Server disk is full" if full else "Upload failed",
+                    "message": "The server has no room for this file."
+                    if full
+                    else "The server could not save this file.",
+                },
+            )
+        finally:
+            # Also runs when the sender hangs up half way.
+            if not done:
+                store.abort_upload(upload)
+
+        return {"id": upload.id, "size": size, "expires_in": settings.ttl}
+
+    @app.delete("/v1/uploads/{upload_id}")
+    def delete_upload(upload_id: str, user: str = Depends(who)) -> dict:
+        result = store.drop_upload(user, upload_id)
+
+        if result == "missing":
+            raise HTTPException(404, UPLOAD_NOT_FOUND)
+
+        if result == "busy":
+            raise HTTPException(
+                409,
+                {
+                    "title": "Upload is in use",
+                    "message": "A job is using this file, or it is still "
+                    "arriving. It is deleted when the job ends.",
+                },
+            )
+
+        return {"deleted": upload_id}
+
     @app.post("/v1/jobs", status_code=202)
-    def create_job(body: BasicJob, user: str = Depends(who)) -> dict:
+    def create_job(body: JobRequest, user: str = Depends(who)) -> dict:
         try:
             job = store.submit(user, body.tool, body.params())
+        except UnknownUploadError as exc:
+            raise HTTPException(
+                404,
+                {
+                    "title": "Upload not found",
+                    "message": f"File number {exc.position} was not found, "
+                    "has expired, or is already in use. Upload it again.",
+                    "source": exc.position,
+                },
+            )
         except UserBusyError:
             raise HTTPException(429, {"title": "A job is already running", "message": "Wait for your current job to finish, then start the next."})
         except TooSoonError as exc:

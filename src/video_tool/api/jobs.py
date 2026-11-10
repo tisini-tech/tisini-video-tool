@@ -37,6 +37,10 @@ ACTIVE = ("queued", "running")
 # such a name are ever deleted at start-up.
 FOLDER_NAME = re.compile(r"^[A-Za-z0-9_-]{22}$")
 
+# Uploaded files live in work_dir/uploads/<id>/. The folder is emptied when
+# the server starts, because the list of uploads is only kept in memory.
+UPLOAD_FOLDER = "uploads"
+
 # Causes that repeat for the same link, so a second try can skip YouTube.
 REMEMBER = {
     "private", "unavailable", "bad_link", "invalid_link",
@@ -72,6 +76,41 @@ class UnknownToolError(ValueError):
 
 class JobStopped(Exception):
     """Raised inside a runner when its job was stopped from outside."""
+
+
+class UploadLimitError(Exception):
+    """The user holds too many uploads, or has no upload space left."""
+
+    def __init__(self, title: str, message: str):
+        super().__init__(message)
+        self.title = title
+        self.message = message
+
+
+class UnknownUploadError(Exception):
+    """A job names an upload that is missing, expired, in use or not theirs.
+
+    ``position`` counts the sources of the request from 1.
+    """
+
+    def __init__(self, position: int):
+        super().__init__(position)
+        self.position = position
+
+
+@dataclass
+class Upload:
+    """A file a user handed over, waiting to be used by a job."""
+
+    id: str
+    user: str
+    folder: Path
+    file: Path
+    limit: int  # most bytes this upload may take; reserved while it arrives
+    created: float
+    size: int = 0
+    ready: bool = False
+    job: str | None = None  # the job that uses it, once there is one
 
 
 @dataclass
@@ -128,6 +167,7 @@ class JobStore:
     ) -> None:
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(self.work_dir / UPLOAD_FOLDER, ignore_errors=True)
         self.ttl = ttl
         self.limits = limits or Limits()
         self._runners = dict(runners)
@@ -135,6 +175,7 @@ class JobStore:
         self._jobs: dict[str, Job] = {}
         self._users: dict[str, _User] = {}
         self._failed_links: dict[str, tuple[float, dict]] = {}
+        self._uploads: dict[str, Upload] = {}
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._pool = ThreadPoolExecutor(max_workers=max_workers)
@@ -164,6 +205,10 @@ class JobStore:
 
             state = self._users.setdefault(user, _User())
             self._check_limits(state, now)
+
+            # A bad upload is refused before it costs the user an attempt.
+            run_params, upload_ids = self._resolve_uploads_locked(user, params)
+
             state.attempts.append(now)
 
             job_id = secrets.token_urlsafe(16)
@@ -185,7 +230,10 @@ class JobStore:
             job = Job(job_id, user, tool, folder, created=now)
             self._jobs[job_id] = job
 
-        self._pool.submit(self._work, job_id, key, params)
+            for upload_id in upload_ids:
+                self._uploads[upload_id].job = job_id
+
+        self._pool.submit(self._work, job_id, key, run_params)
 
         return job
 
@@ -209,8 +257,91 @@ class JobStore:
                 return "busy"
 
             del self._jobs[job_id]
+            gone = self._release_uploads_locked(job_id)
 
         shutil.rmtree(job.folder, ignore_errors=True)
+
+        for folder in gone:
+            shutil.rmtree(folder, ignore_errors=True)
+
+        return "deleted"
+
+    # ---------------------------------------------------------- uploads
+
+    def start_upload(self, user: str) -> Upload:
+        """Reserve room for one upload. The caller then fills ``file``.
+
+        Raises ``UploadLimitError`` when the user holds too many files or
+        has no space left. While the file arrives, the most it may take is
+        counted against the user's space, so two uploads sent at the same
+        time cannot get past the limit together.
+        """
+
+        with self._lock:
+            self._sweep_locked()
+            now = self._clock()
+            mine = [u for u in self._uploads.values() if u.user == user]
+
+            if len(mine) >= self.limits.max_uploads:
+                raise UploadLimitError(
+                    "Too many uploads",
+                    f"You can hold {self.limits.max_uploads} uploaded files "
+                    "at once. Use them in a merge or delete some first.",
+                )
+
+            used = sum(u.size if u.ready else u.limit for u in mine)
+            room = min(
+                self.limits.max_upload, self.limits.upload_quota - used
+            )
+
+            if room <= 0:
+                raise UploadLimitError(
+                    "Upload space is full",
+                    "Your uploaded files take all the space you may use. "
+                    "Use them in a merge or delete some first.",
+                )
+
+            upload_id = secrets.token_urlsafe(16)
+            folder = self.work_dir / UPLOAD_FOLDER / upload_id
+            folder.mkdir(parents=True, exist_ok=True)
+            upload = Upload(
+                upload_id, user, folder, folder / "upload.bin", room, now
+            )
+            self._uploads[upload_id] = upload
+
+        return upload
+
+    def finish_upload(self, upload: Upload, size: int) -> None:
+        """The file arrived and passed its checks. It can be used now."""
+
+        with self._lock:
+            upload.size = size
+            upload.created = self._clock()
+            upload.ready = True
+
+    def abort_upload(self, upload: Upload) -> None:
+        """The upload failed or was cut off. Forget it and its file."""
+
+        with self._lock:
+            self._uploads.pop(upload.id, None)
+
+        shutil.rmtree(upload.folder, ignore_errors=True)
+
+    def drop_upload(self, user: str, upload_id: str) -> str:
+        """Return "deleted", "missing" or "busy" (arriving, or in a job)."""
+
+        with self._lock:
+            upload = self._uploads.get(upload_id)
+
+            if upload is None or upload.user != user:
+                return "missing"
+
+            if upload.job is not None or not upload.ready:
+                return "busy"
+
+            del self._uploads[upload_id]
+
+        shutil.rmtree(upload.folder, ignore_errors=True)
 
         return "deleted"
 
@@ -287,6 +418,7 @@ class JobStore:
     def _finish_failed(self, job: Job, key: str, exc: Exception) -> None:
         if isinstance(exc, JobStopped):
             shutil.rmtree(job.folder, ignore_errors=True)
+            self._drop_job_uploads(job.id)
             return
 
         info = explain(exc)
@@ -300,7 +432,16 @@ class JobStore:
 
         error = _error_dict(info)
 
+        # A merge runner marks the exception with the number of the clip
+        # that failed (1 is the first link), so the caller can say which.
+        clip = getattr(exc, "clip_number", None)
+
+        if isinstance(clip, int):
+            error["clip"] = clip
+
         with self._lock:
+            gone = self._release_uploads_locked(job.id)
+
             if job.status == "running":
                 now = self._clock()
                 job.error = error
@@ -320,8 +461,15 @@ class JobStore:
         # A failed job keeps no files. The error is enough.
         shutil.rmtree(job.folder, ignore_errors=True)
 
+        for folder in gone:
+            shutil.rmtree(folder, ignore_errors=True)
+
     def _finish_done(self, job: Job, path: Path) -> None:
         with self._lock:
+            # The merged file is all that is kept. The uploads it was
+            # made from are no longer needed.
+            gone = self._release_uploads_locked(job.id)
+
             if job.status != "running":  # stopped while it ran
                 stopped = True
             else:
@@ -332,10 +480,81 @@ class JobStore:
                 job.finished = self._clock()
                 self._users.setdefault(job.user, _User()).streak = 0
 
+        for folder in gone:
+            shutil.rmtree(folder, ignore_errors=True)
+
         if stopped:
             shutil.rmtree(job.folder, ignore_errors=True)
 
     # ---------------------------------------------------------- tidying
+
+    def _resolve_uploads_locked(
+        self, user: str, params: dict
+    ) -> tuple[dict, list[str]]:
+        """Swap each ``{"upload": id}`` source for ``{"path": file}``.
+
+        Returns the parameters the runner gets and the IDs the job will
+        use. Nothing is changed yet, so a refusal leaves no mark. A source
+        is refused when the upload is missing, expired, not this user's,
+        still arriving, or already used by another job.
+        """
+
+        sources = params.get("sources")
+
+        if not sources:
+            return params, []
+
+        resolved: list[dict] = []
+        used: list[str] = []
+
+        for position, source in enumerate(sources, 1):
+            upload_id = source.get("upload")
+
+            if upload_id is None:
+                resolved.append(source)
+                continue
+
+            upload = self._uploads.get(upload_id)
+
+            if (
+                upload is None
+                or upload.user != user
+                or not upload.ready
+                or upload.job is not None
+            ):
+                raise UnknownUploadError(position)
+
+            resolved.append({"path": str(upload.file)})
+            used.append(upload_id)
+
+        return {**params, "sources": resolved}, used
+
+    def _release_uploads_locked(self, job_id: str) -> list[Path]:
+        """Forget the uploads a job used. Return their folders to delete."""
+
+        folders = []
+
+        for upload_id, upload in list(self._uploads.items()):
+            if upload.job == job_id:
+                del self._uploads[upload_id]
+                folders.append(upload.folder)
+
+        return folders
+
+    def _drop_job_uploads(self, job_id: str) -> None:
+        with self._lock:
+            folders = self._release_uploads_locked(job_id)
+
+        for folder in folders:
+            shutil.rmtree(folder, ignore_errors=True)
+
+    def _time_limit(self, tool: str) -> int:
+        """A merge downloads several videos, so it may run longer."""
+
+        if tool == "merge":
+            return self.limits.merge_timeout
+
+        return self.limits.job_timeout
 
     def _sweep_locked(self) -> None:
         now = self._clock()
@@ -345,15 +564,18 @@ class JobStore:
                 shutil.rmtree(job.folder, ignore_errors=True)
                 del self._jobs[job_id]
 
+                for folder in self._release_uploads_locked(job_id):
+                    shutil.rmtree(folder, ignore_errors=True)
+
             elif (
                 job.status == "running"
                 and job.started is not None
-                and now - job.started > self.limits.job_timeout
+                and now - job.started > self._time_limit(job.tool)
             ):
                 info = explain(TimeoutError())
                 logger.warning(
                     "Job %s stopped: over %s seconds",
-                    job.id, self.limits.job_timeout,
+                    job.id, self._time_limit(job.tool),
                 )
                 job.error = _error_dict(info)
                 job.status = "failed"
@@ -362,9 +584,22 @@ class JobStore:
                     self._users.setdefault(job.user, _User()), now
                 )
 
+                for folder in self._release_uploads_locked(job_id):
+                    shutil.rmtree(folder, ignore_errors=True)
+
         for key, (until, _) in list(self._failed_links.items()):
             if until <= now:
                 del self._failed_links[key]
+
+        # An upload nobody used goes after the same time as a finished job.
+        for upload_id, upload in list(self._uploads.items()):
+            if (
+                upload.ready
+                and upload.job is None
+                and now - upload.created > self.ttl
+            ):
+                shutil.rmtree(upload.folder, ignore_errors=True)
+                del self._uploads[upload_id]
 
         for user, state in list(self._users.items()):
             while state.attempts and state.attempts[0] <= now - 3600:

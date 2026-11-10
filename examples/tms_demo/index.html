@@ -1,0 +1,1492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match footage</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f6b4a'/%3E%3Crect x='5' y='13' width='10' height='6' rx='1.5' fill='%23fff'/%3E%3Crect x='17' y='13' width='10' height='6' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f4f6f2;
+    --panel: #ffffff;
+    --ink: #15211b;
+    --muted: #55645b;
+    --line: #d3dbd4;
+    --seg: #e3ebe5;
+    --pitch: #1f6b4a;
+    --on-pitch: #ffffff;
+    --stoppage: #b07d00;
+    --card: #b52f27;
+    --focus: #1a5fd0;
+    --radius: 6px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0f1914;
+      --panel: #16231c;
+      --ink: #e8efe9;
+      --muted: #9fb2a6;
+      --line: #2c3d33;
+      --seg: #223229;
+      --pitch: #4cc38a;
+      --on-pitch: #08130d;
+      --stoppage: #f2c14e;
+      --card: #ff8a7e;
+      --focus: #7aa8ff;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 16px/1.5 var(--font);
+    font-variant-numeric: tabular-nums;
+  }
+
+  main {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 2.5rem 1rem 4rem;
+  }
+
+  h1 {
+    margin: 0 0 .5rem;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+  }
+
+  h2 { margin: 0; font-size: 1.25rem; line-height: 1.25; font-weight: 650; }
+
+  .lede { margin: 0 0 2rem; max-width: 34rem; color: var(--muted); }
+
+  [hidden] { display: none !important; }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  /* ---- the match strip: one segment per video, in playing order ---- */
+
+  .strip-wrap { margin-bottom: 1.5rem; }
+
+  .strip {
+    --gap: 8px;
+    display: flex;
+    gap: var(--gap);
+    min-height: 4.25rem;
+    transition: gap .5s cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .strip.empty {
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    border: 1.5px dashed var(--line);
+    border-radius: var(--radius);
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .seg {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: .55rem .7rem .7rem;
+    background: var(--seg);
+    border-radius: 3px;
+    overflow: hidden;
+    transition: border-radius .5s;
+  }
+
+  .seg .name {
+    font-size: .875rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .seg .track {
+    height: 5px;
+    margin-top: .5rem;
+    background: color-mix(in srgb, var(--ink) 14%, transparent);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .seg .fill {
+    height: 100%;
+    width: 0;
+    background: var(--pitch);
+    transition: width .25s linear;
+  }
+
+  .strip.joining .seg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--stoppage) 28%, transparent), transparent);
+    transform: translateX(-100%);
+    animation: sweep 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes sweep { to { transform: translateX(100%); } }
+
+  /* the seam closes: the gaps shut and only a tick remains where each join is */
+  .strip.joined { --gap: 0px; }
+  .strip.joined .seg { border-radius: 0; }
+  .strip.joined .seg:first-child { border-radius: 3px 0 0 3px; }
+  .strip.joined .seg:last-child { border-radius: 0 3px 3px 0; }
+  .strip.joined .seg:only-child { border-radius: 3px; }
+  .strip.joined .seg + .seg { box-shadow: inset 2px 0 0 var(--page); }
+
+  .ruler {
+    display: flex;
+    justify-content: space-between;
+    margin-top: .4rem;
+    min-height: 1.4rem;
+    font-size: .875rem;
+    color: var(--muted);
+  }
+
+  /* ---- the working area ---- */
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+
+  .panel.dragging { outline: 3px dashed var(--pitch); outline-offset: 4px; }
+
+  .sources { list-style: none; margin: 0 0 1.25rem; padding: 0; }
+  .sources:empty { display: none; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+    gap: .5rem .75rem;
+    align-items: center;
+    padding: .7rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .row:first-child { border-top: 0; padding-top: 0; }
+
+  .row .num { color: var(--muted); text-align: right; }
+
+  .row .title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .row .meta { display: flex; flex-wrap: wrap; gap: 0 1rem; font-size: .875rem; color: var(--muted); }
+
+  .row .problem-text { grid-column: 2 / -1; margin: 0; font-size: .875rem; color: var(--card); }
+
+  .row.bad .title { color: var(--card); }
+  .row.flagged { box-shadow: -3px 0 0 var(--card); padding-left: .5rem; }
+
+  .actions { display: flex; gap: .25rem; }
+
+  button, .btn {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+  }
+  .icon-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--line); }
+  .icon-btn:disabled { opacity: .35; cursor: default; }
+  .icon-btn svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 2.75rem;
+    padding: 0 1.1rem;
+    color: var(--ink);
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-weight: 560;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--muted); }
+  .btn.primary { color: var(--on-pitch); background: var(--pitch); border-color: var(--pitch); }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .add { display: flex; flex-wrap: wrap; gap: .75rem; align-items: stretch; }
+
+  .link-field { display: flex; flex: 1 1 18rem; gap: .5rem; min-width: 0; }
+  .link-field .btn { flex: none; }
+
+  input[type="url"] {
+    flex: 1;
+    min-width: 0;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0 .8rem;
+    color: var(--ink);
+    background: var(--page);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: inherit;
+  }
+  input[type="url"]::placeholder { color: var(--muted); }
+
+  .hint { margin: .75rem 0 0; font-size: .875rem; color: var(--muted); }
+
+  .field-error { margin: .5rem 0 0; font-size: .875rem; color: var(--card); min-height: 1.3rem; }
+
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+  }
+  .footer p { margin: 0; font-size: .875rem; color: var(--muted); max-width: 26rem; }
+
+  /* ---- progress, result and problem ---- */
+
+  .steps { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: 0 0 1rem; padding: 0; list-style: none; font-size: .875rem; color: var(--muted); }
+  .steps li { display: flex; align-items: center; gap: .45rem; }
+  .steps li::before {
+    content: "";
+    width: .6rem; height: .6rem;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+  }
+  .steps li.done { color: var(--ink); }
+  .steps li.done::before { background: var(--pitch); border-color: var(--pitch); }
+  .steps li.current { color: var(--ink); font-weight: 600; }
+  .steps li.current::before { border-color: var(--pitch); background: color-mix(in srgb, var(--pitch) 30%, transparent); }
+
+  .run-detail { margin: .35rem 0 0; color: var(--muted); }
+  .run-note { margin: 1rem 0 0; font-size: .875rem; color: var(--muted); max-width: 34rem; }
+  .run-actions { margin-top: 1.25rem; display: flex; gap: .75rem; flex-wrap: wrap; }
+
+  .done-wrap h2, .problem-wrap h2 { margin-bottom: .35rem; }
+  .problem-wrap h2 { color: var(--card); }
+  .done-wrap p, .problem-wrap p { margin: 0 0 .5rem; max-width: 34rem; }
+  .done-wrap .actions-row, .problem-wrap .actions-row { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+  .small { font-size: .875rem; color: var(--muted); }
+
+  .notice { min-height: 1.4rem; margin: .75rem 0 0; font-size: .875rem; color: var(--stoppage); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ---- tabs and the single-video tool ---- */
+
+  .tabs { display: flex; gap: .25rem; margin: 0 0 1.75rem; border-bottom: 1px solid var(--line); }
+
+  .tab {
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    margin-bottom: -1px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    font: inherit;
+    font-weight: 560;
+    cursor: pointer;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--pitch); }
+
+  .field-label { display: block; margin: 0 0 .4rem; font-weight: 560; }
+  .link-only { display: flex; }
+  .link-only input { flex: 1; }
+
+  .choices { margin: 1.25rem 0 0; padding: 0; border: 0; }
+  .choices legend { padding: 0; margin: 0 0 .4rem; font-weight: 560; }
+  .choice-row { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+  .choice-row label { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.5rem; cursor: pointer; }
+  .choice-row input { width: 1.1rem; height: 1.1rem; accent-color: var(--pitch); }
+
+  .quality { margin: .75rem 0 0; }
+  .quality label { font-weight: 560; margin-right: .6rem; }
+  select {
+    min-height: 2.5rem;
+    padding: 0 .6rem;
+    color: var(--ink);
+    background: var(--page);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: inherit;
+  }
+
+  .bar { height: 8px; margin: 1rem 0 .5rem; background: color-mix(in srgb, var(--ink) 14%, transparent); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; background: var(--pitch); transition: width .3s linear; }
+  .bar.waiting .bar-fill { width: 35%; animation: slide 1.6s ease-in-out infinite; }
+  @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+
+  @media (max-width: 560px) {
+    main { padding-top: 1.5rem; }
+    .row { grid-template-columns: 1.25rem minmax(0, 1fr) auto; gap: .5rem; }
+    .row .actions { gap: 0; }
+    .icon-btn { width: 2.25rem; }
+    .footer .btn { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .strip, .seg, .seg .fill, .bar-fill { transition: none; }
+    .bar.waiting .bar-fill { animation: none; margin-left: 0; width: 100%; opacity: .35; }
+    .strip.joining .seg::after { animation: none; transform: none; background: color-mix(in srgb, var(--stoppage) 18%, transparent); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Match footage</h1>
+    <p class="lede" id="lede">Join the halves into one video. Add files from your computer or paste a YouTube link, then put them in playing order.</p>
+  </header>
+
+  <noscript><p>This page needs JavaScript to upload and merge videos.</p></noscript>
+
+  <div class="tabs" role="tablist" aria-label="What do you want to do?">
+    <button type="button" class="tab" role="tab" id="tab-merge" aria-controls="tool-merge" aria-selected="true">Merge videos</button>
+    <button type="button" class="tab" role="tab" id="tab-basic" aria-controls="tool-basic" aria-selected="false" tabindex="-1">Save one video</button>
+  </div>
+
+  <div id="tool-merge" role="tabpanel" aria-labelledby="tab-merge">
+
+  <section class="strip-wrap" aria-label="Playing order">
+    <div id="strip" class="strip empty">Your videos line up here, in playing order.</div>
+    <div class="ruler"><span id="ruler-start"></span><span id="ruler-end"></span></div>
+  </section>
+
+  <section id="compose" class="panel" aria-label="Your videos">
+    <ol id="sources" class="sources"></ol>
+
+    <div class="add">
+      <button type="button" class="btn" id="add-files">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Add videos
+      </button>
+      <input type="file" id="file-input" multiple hidden accept="video/*,.mkv,.ts,.mts,.m2ts,.mov,.avi,.flv,.webm,.mp4">
+      <form class="link-field" id="link-form" novalidate>
+        <label class="sr-only" for="link-input">YouTube link</label>
+        <input type="url" id="link-input" placeholder="Paste a YouTube link" autocomplete="off" inputmode="url">
+        <button type="submit" class="btn">Add link</button>
+      </form>
+    </div>
+    <p class="field-error" id="link-error" role="alert"></p>
+    <p class="hint">You can also drop video files anywhere on this panel.</p>
+
+    <div class="footer">
+      <p id="summary">Add at least two videos.</p>
+      <button type="button" class="btn primary" id="merge" disabled>Merge videos</button>
+    </div>
+    <p class="notice" id="notice" role="status"></p>
+  </section>
+
+  <section id="run" class="panel" hidden aria-label="Merge progress">
+    <ol class="steps" id="steps"></ol>
+    <h2 id="run-title" role="status"></h2>
+    <p class="run-detail" id="run-detail"></p>
+    <p class="run-note" id="run-note"></p>
+    <div class="run-actions"><button type="button" class="btn" id="cancel" hidden>Cancel upload</button></div>
+  </section>
+
+  <section id="result" class="panel done-wrap" hidden aria-label="Result">
+    <h2 id="result-title" tabindex="-1">Your video is ready</h2>
+    <p id="result-text"></p>
+    <div class="actions-row">
+      <a class="btn primary" id="download" href="#" download>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+        Download video
+      </a>
+      <button type="button" class="btn" id="again">Merge more videos</button>
+    </div>
+    <p class="small" style="margin-top:1rem">This copy is kept for about an hour. Download it now.</p>
+  </section>
+
+  <section id="problem" class="panel problem-wrap" hidden aria-label="Problem">
+    <h2 id="problem-title" tabindex="-1"></h2>
+    <p id="problem-message"></p>
+    <p class="small" id="problem-hint"></p>
+    <div class="actions-row">
+      <button type="button" class="btn primary" id="retry">Back to your videos</button>
+    </div>
+  </section>
+
+  </div><!-- /tool-merge -->
+
+  <div id="tool-basic" role="tabpanel" aria-labelledby="tab-basic" hidden>
+
+    <section id="b-compose" class="panel" aria-label="Save one video">
+      <form id="b-form" novalidate>
+        <label class="field-label" for="b-link">YouTube link</label>
+        <div class="link-only">
+          <input type="url" id="b-link" placeholder="Paste a YouTube link" autocomplete="off" inputmode="url">
+        </div>
+        <p class="field-error" id="b-error" role="alert"></p>
+
+        <fieldset class="choices">
+          <legend>Save as</legend>
+          <div class="choice-row">
+            <label><input type="radio" name="b-format" value="MP4" checked> Video (MP4)</label>
+            <label><input type="radio" name="b-format" value="MP3"> Audio only (MP3)</label>
+          </div>
+        </fieldset>
+
+        <p class="quality" id="b-quality-wrap">
+          <label for="b-quality">Quality</label>
+          <select id="b-quality">
+            <option value="Best">Best available</option>
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+            <option value="480p">480p</option>
+            <option value="360p">360p</option>
+          </select>
+        </p>
+
+        <div class="footer">
+          <p id="b-summary">Saves one video from a YouTube link as a file you can keep.</p>
+          <button type="submit" class="btn primary" id="b-go">Get video</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="b-run" class="panel" hidden aria-label="Progress">
+      <h2 id="b-run-title" role="status"></h2>
+      <div class="bar" id="b-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Progress"><div class="bar-fill" id="b-fill"></div></div>
+      <p class="run-detail" id="b-run-detail"></p>
+      <p class="run-note">You can leave this page. Your file will be here when you come back.</p>
+    </section>
+
+    <section id="b-result" class="panel done-wrap" hidden aria-label="Result">
+      <h2 id="b-result-title" tabindex="-1"></h2>
+      <p id="b-result-text"></p>
+      <div class="actions-row">
+        <a class="btn primary" id="b-download" href="#" download>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+          Download
+        </a>
+        <button type="button" class="btn" id="b-again">Save another video</button>
+      </div>
+      <p class="small" style="margin-top:1rem">This copy is kept for about an hour. Download it now.</p>
+    </section>
+
+    <section id="b-problem" class="panel problem-wrap" hidden aria-label="Problem">
+      <h2 id="b-problem-title" tabindex="-1"></h2>
+      <p id="b-problem-message"></p>
+      <p class="small" id="b-problem-hint"></p>
+      <div class="actions-row">
+        <button type="button" class="btn primary" id="b-retry">Try again</button>
+      </div>
+    </section>
+
+  </div><!-- /tool-basic -->
+</main>
+
+<script>
+/* Where the backend routes live, and the token Django wants on POST and DELETE.
+   A server-rendered page may add <meta name="vt-api" content="/video/api/"> and
+   <meta name="vt-csrf" content="...">. The demo has neither and uses /api. */
+window.VT = (() => {
+  const meta = (name) => {
+    const tag = document.querySelector(`meta[name="${name}"]`);
+    return tag ? tag.content : "";
+  };
+  const base = (meta("vt-api") || "/api").replace(/\/+$/, "");
+  const csrf = meta("vt-csrf");
+  return {
+    url: (path) => base + path.replace(/^\/api(?=\/)/, ""),
+    headers: (extra) => (csrf ? { ...(extra || {}), "X-CSRFToken": csrf } : (extra || {})),
+  };
+})();
+</script>
+
+<script>
+(() => {
+  "use strict";
+
+  const LS_KEY = "tms.merge.v1";
+  const POLL_MS = 2000;
+  const JOIN_AT = 0.899; // the API spends the first 90% on fetching links
+  const GB = 1024 ** 3;
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    strip: $("strip"), rulerStart: $("ruler-start"), rulerEnd: $("ruler-end"),
+    compose: $("compose"), sources: $("sources"), addFiles: $("add-files"),
+    fileInput: $("file-input"), linkForm: $("link-form"), linkInput: $("link-input"),
+    linkError: $("link-error"), summary: $("summary"), merge: $("merge"), notice: $("notice"),
+    run: $("run"), steps: $("steps"), runTitle: $("run-title"), runDetail: $("run-detail"),
+    runNote: $("run-note"), cancel: $("cancel"),
+    result: $("result"), resultTitle: $("result-title"), resultText: $("result-text"),
+    download: $("download"), again: $("again"),
+    problem: $("problem"), problemTitle: $("problem-title"), problemMessage: $("problem-message"),
+    problemHint: $("problem-hint"), retry: $("retry"),
+  };
+
+  const state = {
+    config: { maxFileBytes: 5 * GB, maxSources: 6, minSources: 2 },
+    sources: [],
+    nextId: 1,
+    phase: "compose", // compose | uploading | processing | done | failed
+    stage: "",        // uploading | waiting | fetching | joining
+    stageSince: 0,
+    job: null,        // { id, hasLinks, hasFiles, strip: [{name, duration}], startedAt }
+    progress: 0,
+    xhr: null,
+    cancelled: false,
+    pollTimer: 0,
+    pollFailures: 0,
+    ticker: 0,
+    stripSig: "",
+    flagged: 0,
+    noticeTimer: 0,
+  };
+
+  /* ------------------------------------------------------------ helpers */
+
+  const icons = {
+    up: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
+    down: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    remove: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  };
+
+  function saveJob() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state.job)); } catch (_) { /* private mode */ }
+  }
+  function loadJob() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (_) { return null; }
+  }
+  function forgetJob() {
+    try { localStorage.removeItem(LS_KEY); } catch (_) { /* nothing to do */ }
+  }
+
+  function fmtSize(bytes) {
+    if (bytes >= GB) return (bytes / GB).toFixed(bytes >= 10 * GB ? 0 : 1) + " GB";
+    return Math.max(1, Math.round(bytes / 1048576)) + " MB";
+  }
+
+  function fmtTime(seconds) {
+    const s = Math.round(seconds);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const r = s % 60;
+    const two = (n) => String(n).padStart(2, "0");
+    return h ? `${h}:${two(m)}:${two(r)}` : `${m}:${two(r)}`;
+  }
+
+  function say(text) {
+    el.notice.textContent = text;
+    clearTimeout(state.noticeTimer);
+    if (text) state.noticeTimer = setTimeout(() => { el.notice.textContent = ""; }, 5000);
+  }
+
+  function looksLikeVideo(file) {
+    return file.type.startsWith("video/") || /\.(mp4|m4v|mov|mkv|webm|avi|flv|ts|mts|m2ts)$/i.test(file.name);
+  }
+
+  function looksLikeYouTube(text) {
+    try {
+      const url = new URL(/^[a-z]+:\/\//i.test(text) ? text : "https://" + text);
+      return /^(www\.|m\.)?youtube\.com$|^youtu\.be$/i.test(url.hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function api(method, path, body) {
+    const res = await fetch(VT.url(path), {
+      method,
+      headers: VT.headers(body ? { "Content-Type": "application/json" } : {}),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) { /* no body */ }
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  function plainError(data, fallback) {
+    const e = (data && data.error) || {};
+    return {
+      title: e.title || fallback.title,
+      message: e.message || fallback.message,
+      hint: e.hint || "",
+      source: e.source || 0,
+    };
+  }
+
+  /* ------------------------------------------------------------ the strip */
+
+  function stripItems() {
+    // Before a job exists the strip shows the list being built. Once one
+    // exists (also after a page reload) it shows what that job was given.
+    const fromList = state.phase === "compose" || state.phase === "uploading" || !state.job;
+    if (fromList) {
+      return state.sources.map((s) => ({ key: s.id, name: s.name, duration: s.duration }));
+    }
+    return (state.job.strip || []).map((s, i) => ({ key: i, name: s.name, duration: s.duration }));
+  }
+
+  function weightsOf(items) {
+    const known = items.length > 0 && items.every((i) => i.duration > 0);
+    return items.map((i) => (known ? i.duration : 1));
+  }
+
+  function renderStrip() {
+    const items = stripItems();
+    const sig = items.map((i) => `${i.key}:${i.name}:${i.duration || 0}`).join("|");
+
+    if (sig !== state.stripSig) {
+      state.stripSig = sig;
+      el.strip.replaceChildren();
+      el.strip.classList.toggle("empty", items.length === 0);
+
+      if (!items.length) {
+        el.strip.textContent = "Your videos line up here, in playing order.";
+      } else {
+        const weights = weightsOf(items);
+        items.forEach((item, i) => {
+          const seg = document.createElement("div");
+          seg.className = "seg";
+          seg.style.flexGrow = String(weights[i]);
+          const name = document.createElement("span");
+          name.className = "name";
+          name.textContent = item.name;
+          name.title = item.name;
+          const track = document.createElement("div");
+          track.className = "track";
+          const fill = document.createElement("div");
+          fill.className = "fill";
+          track.appendChild(fill);
+          seg.append(name, track);
+          el.strip.appendChild(seg);
+        });
+      }
+    }
+
+    // Fill each segment according to what has happened so far.
+    const fills = el.strip.querySelectorAll(".fill");
+    fills.forEach((fill, i) => {
+      let value = 0;
+      if (state.phase === "uploading") {
+        const src = state.sources[i];
+        value = src ? (src.kind === "file" ? src.progress : 0) : 0;
+      } else if (state.phase === "processing") {
+        // Uploaded files are already in. Links fill as they are fetched.
+        const kinds = (state.job && state.job.kinds) || [];
+        const isLink = kinds[i] === "link";
+        if (!isLink) value = 1;
+        else if (state.stage === "fetching") value = Math.min(1, state.progress / 0.9);
+        else if (state.stage === "joining") value = 1;
+      } else if (state.phase === "done") {
+        value = 1;
+      }
+      fill.style.width = Math.round(value * 100) + "%";
+    });
+
+    const joining = state.phase === "processing" && state.stage === "joining";
+    el.strip.classList.toggle("joining", joining);
+    el.strip.classList.toggle("joined", state.phase === "done");
+
+    const known = items.length > 0 && items.every((i) => i.duration > 0);
+    el.rulerStart.textContent = known ? "0:00" : "";
+    el.rulerEnd.textContent = known ? fmtTime(items.reduce((t, i) => t + i.duration, 0)) : "";
+  }
+
+  /* ------------------------------------------------------------ sources */
+
+  function readDuration(src) {
+    const url = URL.createObjectURL(src.file);
+    const video = document.createElement("video");
+    let finished = false;
+    const finish = (value) => {
+      if (finished) return;
+      finished = true;
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      video.load();
+      if (Number.isFinite(value) && value > 0) {
+        src.duration = value;
+        render();
+      }
+    };
+    video.preload = "metadata";
+    video.muted = true;
+    video.onloadedmetadata = () => finish(video.duration);
+    video.onerror = () => finish(null);
+    setTimeout(() => finish(null), 8000);
+    video.src = url;
+  }
+
+  function addFiles(list) {
+    let skipped = 0;
+    for (const file of list) {
+      if (state.sources.length >= state.config.maxSources) { skipped += 1; continue; }
+      const src = {
+        id: state.nextId++, kind: "file", file, name: file.name, size: file.size,
+        duration: null, error: "", progress: 0, uploadId: "", checking: false,
+      };
+      if (file.size === 0) src.error = "This file is empty.";
+      else if (file.size > state.config.maxFileBytes) src.error = `This file is larger than the ${fmtSize(state.config.maxFileBytes)} allowed.`;
+      else if (!looksLikeVideo(file)) src.error = "This does not look like a video. Use MP4, MOV, MKV, WebM, AVI, FLV or TS.";
+      state.sources.push(src);
+      if (!src.error) readDuration(src);
+    }
+    if (skipped) say(`A merge takes up to ${state.config.maxSources} videos. ${skipped} not added.`);
+    render();
+  }
+
+  function addLink(text) {
+    el.linkError.textContent = "";
+    const url = text.trim();
+    if (!url) return false;
+    if (!looksLikeYouTube(url)) {
+      el.linkError.textContent = "Paste a YouTube link, for example https://youtu.be/…";
+      return false;
+    }
+    if (state.sources.length >= state.config.maxSources) {
+      el.linkError.textContent = `A merge takes up to ${state.config.maxSources} videos.`;
+      return false;
+    }
+    state.sources.push({ id: state.nextId++, kind: "link", url, name: url.replace(/^https?:\/\/(www\.)?/i, ""), error: "", progress: 0 });
+    render();
+    return true;
+  }
+
+  function move(id, step) {
+    const i = state.sources.findIndex((s) => s.id === id);
+    const j = i + step;
+    if (i < 0 || j < 0 || j >= state.sources.length) return;
+    [state.sources[i], state.sources[j]] = [state.sources[j], state.sources[i]];
+    render();
+    const again = el.sources.querySelector(`[data-id="${id}"] [data-act="${step < 0 ? "up" : "down"}"]`);
+    const fallback = el.sources.querySelector(`[data-id="${id}"] [data-act="${step < 0 ? "down" : "up"}"]`);
+    (again && !again.disabled ? again : fallback)?.focus();
+  }
+
+  function remove(id) {
+    const i = state.sources.findIndex((s) => s.id === id);
+    if (i < 0) return;
+    state.sources.splice(i, 1);
+    render();
+    const next = el.sources.children[Math.min(i, el.sources.children.length - 1)];
+    (next ? next.querySelector('[data-act="remove"]') : el.addFiles)?.focus();
+  }
+
+  function iconButton(label, act, svg, disabled) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "icon-btn";
+    b.dataset.act = act;
+    b.setAttribute("aria-label", label);
+    b.innerHTML = svg; // fixed markup above, no user text
+    b.disabled = disabled;
+    return b;
+  }
+
+  function renderList() {
+    el.sources.replaceChildren();
+    const last = state.sources.length - 1;
+    state.sources.forEach((s, i) => {
+      const li = document.createElement("li");
+      li.className = "row" + (s.error ? " bad" : "") + (state.flagged === i + 1 ? " flagged" : "");
+      li.dataset.id = String(s.id);
+
+      const num = document.createElement("span");
+      num.className = "num";
+      num.textContent = String(i + 1);
+      num.setAttribute("aria-hidden", "true");
+
+      const body = document.createElement("div");
+      body.style.minWidth = "0";
+      const title = document.createElement("span");
+      title.className = "title";
+      title.textContent = s.name;
+      title.title = s.name;
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      const kind = document.createElement("span");
+      kind.textContent = s.kind === "file" ? fmtSize(s.size) : "YouTube link";
+      meta.appendChild(kind);
+      if (s.duration) {
+        const d = document.createElement("span");
+        d.textContent = fmtTime(s.duration) + " long";
+        meta.appendChild(d);
+      }
+      body.append(title, meta);
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const n = i + 1;
+      actions.append(
+        iconButton(`Move ${s.name} earlier, now ${n} of ${last + 1}`, "up", icons.up, i === 0),
+        iconButton(`Move ${s.name} later, now ${n} of ${last + 1}`, "down", icons.down, i === last),
+        iconButton(`Remove ${s.name}`, "remove", icons.remove, false),
+      );
+      li.append(num, body, actions);
+
+      if (s.error) {
+        const p = document.createElement("p");
+        p.className = "problem-text";
+        p.textContent = s.error;
+        li.appendChild(p);
+      }
+      el.sources.appendChild(li);
+    });
+  }
+
+  /* ------------------------------------------------------------ rendering */
+
+  function show(panel) {
+    for (const [name, node] of [["compose", el.compose], ["run", el.run], ["result", el.result], ["problem", el.problem]]) {
+      node.hidden = name !== panel;
+    }
+  }
+
+  function renderSteps() {
+    const job = state.job || {};
+    const hasFiles = state.phase === "uploading" ? state.sources.some((s) => s.kind === "file") : !!job.hasFiles;
+    const hasLinks = state.phase === "uploading" ? state.sources.some((s) => s.kind === "link") : !!job.hasLinks;
+    const order = [];
+    if (hasFiles) order.push(["uploading", "Upload"]);
+    if (hasLinks) order.push(["fetching", "Fetch links"]);
+    order.push(["joining", "Join"]);
+    order.push(["ready", "Ready"]);
+
+    const now = state.phase === "done" ? "ready" : (state.stage === "waiting" ? (hasLinks ? "fetching" : "joining") : state.stage);
+    const at = order.findIndex(([key]) => key === now);
+    el.steps.replaceChildren();
+    order.forEach(([key, label], i) => {
+      const li = document.createElement("li");
+      li.textContent = label;
+      if (i < at || state.phase === "done") li.className = "done";
+      else if (i === at) { li.className = "current"; li.setAttribute("aria-current", "step"); }
+      el.steps.appendChild(li);
+    });
+  }
+
+  function renderRun() {
+    renderSteps();
+    el.cancel.hidden = state.phase !== "uploading";
+    let title = "";
+    let detail = "";
+    let note = "";
+
+    if (state.stage === "uploading") {
+      const files = state.sources.filter((s) => s.kind === "file");
+      const at = files.findIndex((s) => s.progress < 1 && !s.uploadId);
+      const current = files[at === -1 ? files.length - 1 : at];
+      const number = at === -1 ? files.length : at + 1;
+      title = `Uploading video ${number} of ${files.length}`;
+      if (current) {
+        detail = current.checking
+          ? `${current.name}: checking the video…`
+          : `${current.name}: ${Math.floor(current.progress * 100)}%`;
+      }
+      note = "Keep this page open until the upload finishes. After that, the merge keeps going without you.";
+    } else if (state.stage === "waiting") {
+      title = "Waiting for a free slot";
+      detail = "Another merge is running. Yours starts next.";
+      note = "You can leave this page. Your video will be here when you come back.";
+    } else if (state.stage === "fetching") {
+      title = "Fetching YouTube links";
+      detail = `${Math.min(100, Math.floor((state.progress / 0.9) * 100))}% of the links fetched`;
+      note = "You can leave this page. Your video will be here when you come back.";
+    } else if (state.stage === "joining") {
+      const seconds = Math.max(0, Math.round((Date.now() - state.stageSince) / 1000));
+      title = "Joining videos";
+      detail = `Working for ${fmtTime(seconds)}.`;
+      note = "Long matches can take several minutes. You can leave this page. Your video will be here when you come back.";
+    }
+
+    if (el.runTitle.textContent !== title) el.runTitle.textContent = title;
+    el.runDetail.textContent = detail;
+    el.runNote.textContent = note;
+  }
+
+  function render() {
+    renderStrip();
+    if (state.phase === "compose") {
+      show("compose");
+      renderList();
+      const bad = state.sources.some((s) => s.error);
+      const count = state.sources.length;
+      const enough = count >= state.config.minSources;
+      el.merge.disabled = !enough || bad;
+      el.summary.textContent = bad
+        ? "Remove the videos marked in red to continue."
+        : (enough ? `${count} videos, joined in this order.` : (count ? "Add one more video." : "Add at least two videos."));
+    } else if (state.phase === "uploading" || state.phase === "processing") {
+      show("run");
+      renderRun();
+    }
+  }
+
+  /* ------------------------------------------------------------ the merge */
+
+  function showProblem(error, flagged) {
+    state.phase = "failed";
+    clearInterval(state.ticker);
+    clearTimeout(state.pollTimer);
+    state.flagged = flagged || 0;
+    show("problem");
+    el.problemTitle.textContent = error.title;
+    el.problemMessage.textContent = error.message;
+    el.problemHint.textContent = error.hint || (flagged ? `Check video ${flagged} in your list.` : "");
+    renderStrip();
+    el.problemTitle.focus();
+  }
+
+  function dropUploads(ids) {
+    ids.filter(Boolean).forEach((id) => { fetch(VT.url(`/api/uploads/${encodeURIComponent(id)}`), { method: "DELETE", headers: VT.headers() }).catch(() => {}); });
+  }
+
+  function uploadFile(src) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      state.xhr = xhr;
+      xhr.open("POST", VT.url("/api/uploads"));
+      xhr.setRequestHeader("Content-Type", "application/octet-stream");
+      for (const [name, value] of Object.entries(VT.headers())) xhr.setRequestHeader(name, value);
+      xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        src.progress = e.loaded / e.total;
+        src.checking = e.loaded >= e.total;
+        renderStrip();
+        renderRun();
+      };
+      xhr.onload = () => {
+        state.xhr = null;
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (_) { /* not JSON */ }
+        if (xhr.status === 201 && data.id) return resolve(data);
+        reject(plainError(data, { title: "Upload failed", message: "The file could not be uploaded. Try again." }));
+      };
+      xhr.onerror = () => {
+        state.xhr = null;
+        reject({ title: "Upload interrupted", message: "The connection dropped while uploading.", hint: "Check your connection and try again." });
+      };
+      xhr.onabort = () => { state.xhr = null; reject({ aborted: true }); };
+      xhr.send(src.file);
+    });
+  }
+
+  function setStage(stage) {
+    if (state.stage !== stage) {
+      state.stage = stage;
+      state.stageSince = Date.now();
+    }
+  }
+
+  async function startMerge() {
+    state.cancelled = false;
+    state.phase = "uploading";
+    state.flagged = 0;
+    state.sources.forEach((s) => { s.progress = 0; s.uploadId = ""; s.checking = false; });
+    setStage("uploading");
+    render();
+
+    const uploaded = [];
+    for (const src of state.sources.filter((s) => s.kind === "file")) {
+      try {
+        const reply = await uploadFile(src);
+        src.uploadId = reply.id;
+        src.progress = 1;
+        src.checking = false;
+        uploaded.push(reply.id);
+      } catch (err) {
+        dropUploads(uploaded);
+        state.sources.forEach((s) => { s.uploadId = ""; s.progress = 0; });
+        if (err.aborted) {
+          state.phase = "compose";
+          state.stage = "";
+          render();
+          say("Upload cancelled.");
+          return;
+        }
+        const index = state.sources.indexOf(src);
+        src.error = err.message;
+        state.phase = "compose";
+        showProblem(err, index + 1);
+        return;
+      }
+      renderStrip();
+    }
+
+    const sources = state.sources.map((s) => (s.kind === "file" ? { upload: s.uploadId } : { url: s.url }));
+    let reply;
+    try {
+      reply = await api("POST", "/api/merges", { sources });
+    } catch (_) {
+      dropUploads(uploaded);
+      return showProblem({ title: "Could not start the merge", message: "The connection dropped.", hint: "Check your connection and try again." });
+    }
+    if (!reply.ok) {
+      dropUploads(uploaded);
+      const err = plainError(reply.data, { title: "Could not start the merge", message: "Try again in a moment." });
+      return showProblem(err, err.source);
+    }
+
+    state.job = {
+      id: reply.data.id,
+      hasFiles: state.sources.some((s) => s.kind === "file"),
+      hasLinks: state.sources.some((s) => s.kind === "link"),
+      kinds: state.sources.map((s) => s.kind),
+      strip: state.sources.map((s) => ({ name: s.name, duration: s.duration })),
+      startedAt: Date.now(),
+    };
+    saveJob();
+    beginProcessing();
+  }
+
+  function beginProcessing() {
+    state.phase = "processing";
+    state.progress = 0;
+    state.pollFailures = 0;
+    setStage(state.job.hasLinks ? "fetching" : "joining");
+    clearInterval(state.ticker);
+    state.ticker = setInterval(() => { if (state.stage === "joining") renderRun(); }, 1000);
+    render();
+    poll();
+  }
+
+  async function poll() {
+    clearTimeout(state.pollTimer);
+    if (!state.job) return;
+    let reply;
+    try {
+      reply = await api("GET", `/api/merges/${encodeURIComponent(state.job.id)}`);
+    } catch (_) {
+      state.pollFailures += 1;
+      el.runDetail.textContent = "Connection lost. Trying again…";
+      state.pollTimer = setTimeout(poll, Math.min(30000, POLL_MS * 2 ** state.pollFailures));
+      return;
+    }
+    state.pollFailures = 0;
+
+    if (reply.status === 404) {
+      forgetJob();
+      state.job = null;
+      return showProblem({
+        title: "This merge is no longer available",
+        message: "Merged videos are kept for about an hour, and the server may have restarted.",
+        hint: "Start a new merge.",
+      });
+    }
+    if (!reply.ok) {
+      state.pollTimer = setTimeout(poll, POLL_MS * 2);
+      el.runDetail.textContent = "The video service is slow to answer. Trying again…";
+      return;
+    }
+
+    const job = reply.data;
+    state.progress = job.progress || 0;
+
+    if (job.status === "done") return finishDone();
+    if (job.status === "failed") {
+      forgetJob();
+      const err = plainError({ error: job.error }, { title: "The merge failed", message: "Try again in a moment." });
+      return showProblem(err, err.source);
+    }
+
+    if (job.status === "queued") setStage("waiting");
+    else if (state.job.hasLinks && state.progress < JOIN_AT) setStage("fetching");
+    else setStage("joining");
+
+    render();
+    state.pollTimer = setTimeout(poll, POLL_MS);
+  }
+
+  function finishDone() {
+    clearInterval(state.ticker);
+    clearTimeout(state.pollTimer);
+    state.phase = "done";
+    state.stage = "";
+    renderStrip();
+    show("result");
+    const items = stripItems();
+    const known = items.length > 0 && items.every((i) => i.duration > 0);
+    el.resultText.textContent = known
+      ? `${items.length} videos joined into one, ${fmtTime(items.reduce((t, i) => t + i.duration, 0))} long.`
+      : `${items.length} videos joined into one.`;
+    el.download.href = VT.url(`/api/merges/${encodeURIComponent(state.job.id)}/download`);
+    el.resultTitle.focus();
+  }
+
+  function startOver() {
+    forgetJob();
+    state.job = null;
+    state.sources = [];
+    state.phase = "compose";
+    state.stage = "";
+    state.flagged = 0;
+    state.stripSig = "";
+    render();
+  }
+
+  function backToList() {
+    state.phase = "compose";
+    state.stage = "";
+    state.stripSig = "";
+    if (state.job) { forgetJob(); state.job = null; }
+    state.sources.forEach((s) => { s.uploadId = ""; s.progress = 0; if (s.kind === "file" && !s.error) s.checking = false; });
+    render();
+    const bad = el.sources.querySelector(".row.bad, .row.flagged");
+    (bad ? bad.querySelector('[data-act="remove"]') : el.merge)?.focus();
+  }
+
+  /* ------------------------------------------------------------ wiring */
+
+  el.addFiles.addEventListener("click", () => el.fileInput.click());
+  el.fileInput.addEventListener("change", () => { addFiles(Array.from(el.fileInput.files)); el.fileInput.value = ""; });
+  el.linkForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (addLink(el.linkInput.value)) { el.linkInput.value = ""; el.linkInput.focus(); }
+  });
+  el.sources.addEventListener("click", (e) => {
+    const button = e.target.closest("button[data-act]");
+    if (!button) return;
+    const id = Number(button.closest(".row").dataset.id);
+    if (button.dataset.act === "up") move(id, -1);
+    else if (button.dataset.act === "down") move(id, 1);
+    else remove(id);
+  });
+  el.merge.addEventListener("click", startMerge);
+  el.cancel.addEventListener("click", () => { state.cancelled = true; if (state.xhr) state.xhr.abort(); });
+  el.again.addEventListener("click", startOver);
+  el.retry.addEventListener("click", backToList);
+
+  for (const type of ["dragenter", "dragover"]) {
+    el.compose.addEventListener(type, (e) => { if (state.phase !== "compose") return; e.preventDefault(); el.compose.classList.add("dragging"); });
+  }
+  for (const type of ["dragleave", "drop"]) {
+    el.compose.addEventListener(type, (e) => { e.preventDefault(); el.compose.classList.remove("dragging"); });
+  }
+  el.compose.addEventListener("drop", (e) => { if (state.phase === "compose" && e.dataTransfer) addFiles(Array.from(e.dataTransfer.files)); });
+  // A file dropped beside the panel should not make the browser open it.
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => e.preventDefault());
+
+  window.addEventListener("beforeunload", (e) => {
+    if (state.phase === "uploading") { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* ------------------------------------------------------------ start */
+
+  async function start() {
+    try {
+      const reply = await api("GET", "/api/config");
+      if (reply.ok) Object.assign(state.config, reply.data);
+    } catch (_) { /* the built-in limits do */ }
+
+    const saved = loadJob();
+    if (saved && saved.id) {
+      state.job = saved;
+      state.sources = [];
+      beginProcessing();
+      return;
+    }
+    render();
+  }
+
+  start();
+})();
+</script>
+
+<script>
+/* Tabs, and the "save one video" tool. It does not share state with the merge
+   tool above; the two only share the page. */
+(() => {
+  "use strict";
+
+  const TAB_KEY = "tms.tab";
+  const JOB_KEY = "tms.basic.v1";
+  const MERGE_KEY = "tms.merge.v1";
+  const POLL_MS = 2000;
+  const LEDES = {
+    merge: "Join the halves into one video. Add files from your computer or paste a YouTube link, then put them in playing order.",
+    basic: "Save one video from a YouTube link, as a video or as audio only.",
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(key) { try { return localStorage.getItem(key); } catch (_) { return null; } },
+    set(key, value) { try { localStorage.setItem(key, value); } catch (_) { /* private mode */ } },
+    del(key) { try { localStorage.removeItem(key); } catch (_) { /* nothing to do */ } },
+  };
+
+  /* ------------------------------------------------------------ tabs */
+
+  const tabs = { merge: $("tab-merge"), basic: $("tab-basic") };
+  const panels = { merge: $("tool-merge"), basic: $("tool-basic") };
+
+  function selectTab(name, focus) {
+    for (const key of Object.keys(tabs)) {
+      const on = key === name;
+      tabs[key].setAttribute("aria-selected", String(on));
+      tabs[key].tabIndex = on ? 0 : -1;
+      panels[key].hidden = !on;
+    }
+    $("lede").textContent = LEDES[name];
+    store.set(TAB_KEY, name);
+    if (focus) tabs[name].focus();
+  }
+
+  for (const key of Object.keys(tabs)) {
+    tabs[key].addEventListener("click", () => selectTab(key));
+    tabs[key].addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      selectTab(key === "merge" ? "basic" : "merge", true);
+    });
+  }
+
+  /* ------------------------------------------------------------ save one video */
+
+  const el = {
+    compose: $("b-compose"), form: $("b-form"), link: $("b-link"), error: $("b-error"),
+    qualityWrap: $("b-quality-wrap"), quality: $("b-quality"), summary: $("b-summary"), go: $("b-go"),
+    run: $("b-run"), runTitle: $("b-run-title"), bar: $("b-bar"), fill: $("b-fill"), runDetail: $("b-run-detail"),
+    result: $("b-result"), resultTitle: $("b-result-title"), resultText: $("b-result-text"),
+    download: $("b-download"), again: $("b-again"),
+    problem: $("b-problem"), problemTitle: $("b-problem-title"), problemMessage: $("b-problem-message"),
+    problemHint: $("b-problem-hint"), retry: $("b-retry"),
+  };
+
+  const job = { current: null, timer: 0, failures: 0 };
+
+  function format() {
+    return document.querySelector('input[name="b-format"]:checked').value;
+  }
+
+  function noun(fmt) {
+    return fmt === "MP3" ? "audio" : "video";
+  }
+
+  function showPanel(name) {
+    el.compose.hidden = name !== "compose";
+    el.run.hidden = name !== "run";
+    el.result.hidden = name !== "result";
+    el.problem.hidden = name !== "problem";
+  }
+
+  function looksLikeYouTube(text) {
+    try {
+      const url = new URL(/^[a-z]+:\/\//i.test(text) ? text : "https://" + text);
+      return /^(www\.|m\.)?youtube\.com$|^youtu\.be$/i.test(url.hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function api(method, path, body) {
+    const res = await fetch(VT.url(path), {
+      method,
+      headers: VT.headers(body ? { "Content-Type": "application/json" } : {}),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) { /* no body */ }
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  function showProblem(title, message, hint) {
+    clearTimeout(job.timer);
+    job.current = null;
+    store.del(JOB_KEY);
+    el.problemTitle.textContent = title;
+    el.problemMessage.textContent = message || "";
+    el.problemHint.textContent = hint || "";
+    showPanel("problem");
+    el.problemTitle.focus();
+  }
+
+  function showResult(fmt, id) {
+    clearTimeout(job.timer);
+    el.resultTitle.textContent = `Your ${noun(fmt)} is ready`;
+    el.resultText.textContent = fmt === "MP3" ? "The audio is ready as an MP3 file." : "The video is ready as an MP4 file.";
+    el.download.href = VT.url(`/api/downloads/${encodeURIComponent(id)}/download`);
+    showPanel("result");
+    el.resultTitle.focus();
+  }
+
+  function showRunning(fmt, view) {
+    const waiting = view.status === "queued" || !(view.progress > 0);
+    const percent = Math.min(99, Math.round((view.progress || 0) * 100));
+    el.runTitle.textContent = `Getting your ${noun(fmt)}`;
+    el.bar.classList.toggle("waiting", waiting);
+    el.fill.style.width = waiting ? "" : percent + "%";
+
+    if (waiting) {
+      el.bar.removeAttribute("aria-valuenow");
+      el.runDetail.textContent = view.status === "queued" ? "Waiting for a free place in the queue." : "Starting…";
+    } else {
+      el.bar.setAttribute("aria-valuenow", String(percent));
+      el.runDetail.textContent = percent + "%";
+    }
+    showPanel("run");
+  }
+
+  async function poll() {
+    const current = job.current;
+    if (!current) return;
+
+    let reply;
+    try {
+      reply = await api("GET", `/api/downloads/${encodeURIComponent(current.id)}`);
+    } catch (_) {
+      reply = null;
+    }
+    if (job.current !== current) return; // the visitor moved on
+
+    if (!reply) {
+      job.failures += 1;
+      if (job.failures >= 6) {
+        return showProblem("Lost contact with the server", "Check your connection, then start again.");
+      }
+      job.timer = setTimeout(poll, POLL_MS * Math.min(job.failures + 1, 4));
+      return;
+    }
+    job.failures = 0;
+
+    if (reply.status === 404) {
+      return showProblem("This file is no longer available", "Saved files are kept for about an hour.", "Start again to get a new copy.");
+    }
+    if (!reply.ok) {
+      const e = reply.data.error || {};
+      return showProblem(e.title || "Something went wrong", e.message || "Try again in a moment.", e.hint);
+    }
+
+    const view = reply.data;
+    if (view.status === "done") return showResult(current.format, current.id);
+    if (view.status === "failed") {
+      const e = view.error || {};
+      return showProblem(e.title || "The download failed", e.message || "Try again in a moment.", e.hint);
+    }
+
+    showRunning(current.format, view);
+    job.timer = setTimeout(poll, POLL_MS);
+  }
+
+  function begin(saved) {
+    job.current = saved;
+    job.failures = 0;
+    store.set(JOB_KEY, JSON.stringify(saved));
+    showRunning(saved.format, { status: "queued", progress: 0 });
+    poll();
+  }
+
+  function syncFormat() {
+    const fmt = format();
+    el.qualityWrap.hidden = fmt === "MP3";
+    el.go.textContent = `Get ${noun(fmt)}`;
+    el.summary.textContent = fmt === "MP3"
+      ? "Saves the sound of one YouTube video as an MP3 file."
+      : "Saves one YouTube video as an MP4 file.";
+  }
+
+  for (const radio of document.querySelectorAll('input[name="b-format"]')) {
+    radio.addEventListener("change", syncFormat);
+  }
+
+  el.link.addEventListener("input", () => { el.error.textContent = ""; });
+
+  el.form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = el.link.value.trim();
+    el.error.textContent = "";
+
+    if (!looksLikeYouTube(text)) {
+      el.error.textContent = "Paste a YouTube link, for example https://youtu.be/…";
+      el.link.focus();
+      return;
+    }
+
+    const fmt = format();
+    el.go.disabled = true;
+
+    try {
+      const reply = await api("POST", "/api/downloads", {
+        url: /^[a-z]+:\/\//i.test(text) ? text : "https://" + text,
+        format: fmt,
+        quality: fmt === "MP4" ? el.quality.value : "Best",
+      });
+
+      if (reply.ok) return begin({ id: reply.data.id, format: fmt });
+
+      const err = reply.data.error || {};
+      if (reply.status === 422) {
+        el.error.textContent = err.message || "That link was not accepted.";
+        el.link.focus();
+        return;
+      }
+      showProblem(err.title || "Something went wrong", err.message || "Try again in a moment.", err.hint);
+    } catch (_) {
+      showProblem("The server is not reachable", "Check your connection, then try again.");
+    } finally {
+      el.go.disabled = false;
+    }
+  });
+
+  function reset() {
+    clearTimeout(job.timer);
+    job.current = null;
+    store.del(JOB_KEY);
+    showPanel("compose");
+  }
+
+  el.again.addEventListener("click", () => { reset(); el.link.value = ""; el.link.focus(); });
+  el.retry.addEventListener("click", () => { reset(); el.link.focus(); });
+
+  /* ------------------------------------------------------------ start */
+
+  syncFormat();
+  showPanel("compose");
+
+  let saved = null;
+  try { saved = JSON.parse(store.get(JOB_KEY) || "null"); } catch (_) { saved = null; }
+
+  if (saved && typeof saved.id === "string") {
+    selectTab("basic");
+    begin(saved);
+  } else if (store.get(MERGE_KEY)) {
+    selectTab("merge");
+  } else {
+    selectTab(store.get(TAB_KEY) === "basic" ? "basic" : "merge");
+  }
+})();
+</script>
+</body>
+</html>
